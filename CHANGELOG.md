@@ -6,6 +6,12 @@ Toutes les modifications notables de `maisongr-law25`. Le format suit [Keep a Ch
 
 ## [Non publié]
 
+### Ajouté
+
+- `check` lit maintenant le schéma de toutes les piles courantes, pas seulement Prisma et SQL : Drizzle, TypeORM, MikroORM, sequelize-typescript, NestJS (Mongoose), Sequelize (modèles et migrations), Mongoose, Django, SQLAlchemy (et Flask-SQLAlchemy, SQLModel), Rails (`db/schema.rb` ou `db/migrate`), Laravel, Entity Framework, JPA et Hibernate (Java, Kotlin), GORM, et OpenAPI ou JSON Schema (JSON ou YAML). Sans option, il trouve les modèles de chaque ORM du projet et les lit ensemble; les dossiers de dépendances, de compilation et de tests sont laissés de côté.
+- `--schema <chemin>` (répétable) lit les fichiers ou le dossier nommés, et `--stack <pile>` précise la pile quand elle ne se reconnaît pas d’elle-même.
+- Le marqueur `@personal` (ou `@not-personal`) s’écrit dans un commentaire de chaque langage, et `x-personal` dans OpenAPI et JSON Schema.
+- Les lecteurs sont exportés (`parseDrizzle`, `parseDjango`, `parseJpa`…), avec `findSchema`.
 ## [1.0.0] - 2026-11-25
 
 ### Ajouté

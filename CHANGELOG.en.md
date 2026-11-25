@@ -6,6 +6,13 @@ All notable changes to `maisongr-law25`. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- `check` now reads the schema of every common stack, not only Prisma and SQL: Drizzle, TypeORM, MikroORM, sequelize-typescript, NestJS (Mongoose), Sequelize (models and migrations), Mongoose, Django, SQLAlchemy (with Flask-SQLAlchemy and SQLModel), Rails (`db/schema.rb` or `db/migrate`), Laravel, Entity Framework, JPA and Hibernate (Java, Kotlin), GORM, and OpenAPI or JSON Schema (JSON or YAML). With no option it finds the models of every ORM in the project and reads them together; dependency, build and test folders are left out.
+- `--schema <path>` (repeatable) reads the files or folder named, and `--stack <name>` says the stack when it can't be told from them.
+- The `@personal` (or `@not-personal`) marker goes in a comment in each language, and `x-personal` in OpenAPI and JSON Schema.
+- The readers are exported (`parseDrizzle`, `parseDjango`, `parseJpa`…), with `findSchema`.
+
 ## [1.0.0] - 2026-11-25
 
 ### Added

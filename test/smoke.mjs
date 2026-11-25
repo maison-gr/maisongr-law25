@@ -72,6 +72,19 @@ try {
   assert.equal(typeof render, "function");
   assert.equal(typeof validate, "function");
 
+  // A Django project, found by itself; then the same models read through --schema and --stack.
+  const django = join(root, "django-app");
+  mkdirSync(join(django, "shop"), { recursive: true });
+  writeFileSync(join(django, "shop", "models.py"), "from django.db import models\n\nclass Customer(models.Model):\n    email = models.EmailField()\n    total = models.IntegerField()\n");
+  const djangoInit = run(django, "init");
+  assert.equal(djangoInit.status, 0, djangoInit.stderr);
+  assert.match(djangoInit.stdout, /started from the Django models \(shop\/models\.py\)/);
+  assert.match(readFileSync(join(django, "law25.config.mjs"), "utf8"), /fields: \["Customer\.email"\]/);
+  const given = run(django, "check", "--schema", "shop", "--stack", "django", "--json");
+  assert.deepEqual(JSON.parse(given.stdout).schema, ["shop/models.py"]);
+  assert.equal(run(django, "check", "--stack", "django").status, 2, "--stack needs --schema");
+  assert.equal(run(django, "check", "--schema", "shop", "--stack", "cobol").status, 2);
+
   assert.equal(run(root, "publish").status, 2);
   assert.equal(run(root, "check").status, 2, "no config: a usage error");
   assert.match(run(root, "--version").stdout, /^\d+\.\d+\.\d+\n$/);
