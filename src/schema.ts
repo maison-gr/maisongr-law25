@@ -37,9 +37,14 @@ export function parsePrisma(source: string, file = "schema.prisma"): Field[] {
     if (!model) return;
     const doc = l.match(/^\s*\/\/\/(.*)$/);
     if (doc) { docs += ` ${doc[1]}`; return; }
-    const f = l.match(/^\s*(\w+)\s+(\w+)(\[\])?\??(.*)$/);
-    if (!f || l.trim().startsWith("@@") || l.trim().startsWith("//")) { docs = ""; return; }
-    const [, name, type, , rest] = f;
+    // "email String? @unique // note": the first two words are the name and the type (with [] or ?), the rest is
+    // attributes and comments. Split, not matched, so no pattern can backtrack on a long line.
+    const trimmed = l.trim();
+    if (trimmed.startsWith("@@") || trimmed.startsWith("//")) { docs = ""; return; }
+    const [name, rawType, ...restParts] = trimmed.split(/\s+/);
+    const type = rawType?.replace(/(\[\])?\??$/, "");
+    if (!name || !type || !/^\w+$/.test(name) || !/^\w+$/.test(type)) { docs = ""; return; }
+    const rest = restParts.join(" ");
     // A field whose type is another model is a relation, not stored data. Enums stay: a Gender enum is personal.
     if (models.has(type!)) { docs = ""; return; }
     fields.push({ ref: `${model}.${name}`, model, name: name!, type: type!, marked: marker(`${docs} ${rest ?? ""}`), file, line: i + 1 });
@@ -73,10 +78,15 @@ export function parseSql(files: { file: string; source: string }[]): Field[] {
       }
       create.lastIndex = end;
     }
-    const alter = /alter\s+table\s+(?:only\s+)?(?:if\s+exists\s+)?([\w."`\[\]]+)\s+([^;]*);/gi;
+    // The pattern finds "ALTER TABLE name" only; its actions run to the next ";", found with indexOf. No pattern spans
+    // the actions, so a long run of spaces with no ";" can't make one backtrack (CodeQL js/polynomial-redos).
+    const alter = /alter\s+table\s+(?:only\s+)?(?:if\s+exists\s+)?([\w."`\[\]]+)/gi;
     for (const m of source.matchAll(alter)) {
+      const from = (m.index ?? 0) + m[0].length;
+      const end = source.indexOf(";", from);
+      if (end === -1) break;
       const table = name(m[1]!);
-      for (const action of splitTopLevel(m[2]!)) {
+      for (const action of splitTopLevel(source.slice(from, end))) {
         const add = action.match(/^\s*add\s+(?:column\s+)?(?:if\s+not\s+exists\s+)?("[^"]+"|`[^`]+`|\[[^\]]+\]|\w+)\s+(\w+)/i);
         if (add && !/^\s*add\s+(constraint|primary|foreign|unique|check)\b/i.test(action)) {
           const column = unquote(add[1]!);
