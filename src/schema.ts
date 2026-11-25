@@ -37,9 +37,14 @@ export function parsePrisma(source: string, file = "schema.prisma"): Field[] {
     if (!model) return;
     const doc = l.match(/^\s*\/\/\/(.*)$/);
     if (doc) { docs += ` ${doc[1]}`; return; }
-    const f = l.match(/^\s*(\w+)\s+(\w+)(\[\])?\??(.*)$/);
-    if (!f || l.trim().startsWith("@@") || l.trim().startsWith("//")) { docs = ""; return; }
-    const [, name, type, , rest] = f;
+    // "email String? @unique // note": the first two words are the name and the type (with [] or ?), the rest is
+    // attributes and comments. Split, not matched, so no pattern can backtrack on a long line.
+    const trimmed = l.trim();
+    if (trimmed.startsWith("@@") || trimmed.startsWith("//")) { docs = ""; return; }
+    const [name, rawType, ...restParts] = trimmed.split(/\s+/);
+    const type = rawType?.replace(/(\[\])?\??$/, "");
+    if (!name || !type || !/^\w+$/.test(name) || !/^\w+$/.test(type)) { docs = ""; return; }
+    const rest = restParts.join(" ");
     // A field whose type is another model is a relation, not stored data. Enums stay: a Gender enum is personal.
     if (models.has(type!)) { docs = ""; return; }
     fields.push({ ref: `${model}.${name}`, model, name: name!, type: type!, marked: marker(`${docs} ${rest ?? ""}`), file, line: i + 1 });
@@ -73,7 +78,9 @@ export function parseSql(files: { file: string; source: string }[]): Field[] {
       }
       create.lastIndex = end;
     }
-    const alter = /alter\s+table\s+(?:only\s+)?(?:if\s+exists\s+)?([\w."`\[\]]+)\s+([^;]*);/gi;
+    // The actions start with a non-space, so "\s+" and the actions can't share a run of spaces between them: a long run
+    // with no ";" is read once, not once per split (CodeQL js/polynomial-redos).
+    const alter = /alter\s+table\s+(?:only\s+)?(?:if\s+exists\s+)?([\w."`\[\]]+)\s+([^\s;][^;]*);/gi;
     for (const m of source.matchAll(alter)) {
       const table = name(m[1]!);
       for (const action of splitTopLevel(m[2]!)) {

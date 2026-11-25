@@ -114,8 +114,8 @@ const L = {
   },
 };
 
-/** A table cell: one line, pipes escaped. */
-const cell = (s: string) => s.replace(/\|/g, "\\|").replace(/\r?\n+/g, "<br>").trim() || "—";
+/** A table cell: one line, backslashes then pipes escaped (a "\|" in the text can't unescape a pipe). */
+const cell = (s: string) => s.replace(/\\/g, "\\\\").replace(/\|/g, "\\|").replace(/\r?\n+/g, "<br>").trim() || "—";
 const table = (head: string[], rows: string[][]) =>
   [`| ${head.join(" | ")} |`, `|${head.map(() => "---").join("|")}|`, ...rows.map((r) => `| ${r.map(cell).join(" | ")} |`)].join("\n");
 

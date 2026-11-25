@@ -121,6 +121,9 @@ describe("render", () => {
     a.data[0]!.purpose = "Confirm | sign in\nand recover";
     const en = render(a, "en");
     expect(en).toContain("Confirm \\| sign in<br>and recover");
+    // CodeQL js/incomplete-sanitization: a backslash is escaped too, so "\|" in the text can't unescape the pipe.
+    a.data[0]!.purpose = "C:\\data\\| end";
+    expect(render(a, "en")).toContain("C:\\\\data\\\\\\| end");
     expect(en.split("## 7. Action plan")[1]!.split("## 8.")[0]).toMatch(/Allergies appear only[^\n]*15 January 2027[^\n]*Planned[\s\S]*Automatic deletion[^\n]*—[^\n]*To confirm/);
   });
 });
