@@ -1,7 +1,7 @@
-## What this changes
+## Ce que ça change · What this changes
 
-## How it was checked
+## Comment c’est vérifié · How it was checked
 
-- [ ] A test that fails without this change
+- [ ] Un test qui échoue sans ce changement · A test that fails without this change
 - [ ] `npm run typecheck`, `npm test`, `npm run build && node test/smoke.mjs`
-- [ ] Report wording changed in both French and English, and the example's reports rebuilt (`cd example && node ../dist/cli.js build`)
+- [ ] Le libellé du rapport changé en français et en anglais, et les rapports de l’exemple régénérés (`cd example && node ../dist/cli.js build`) · Report wording changed in both French and English, and the example’s reports rebuilt

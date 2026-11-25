@@ -1,23 +1,23 @@
-name: Bug report
-description: A schema read wrong, a personal field missed or flagged wrongly, a report that's wrong.
+name: Signaler un bogue · Bug report
+description: Un schéma mal lu, un champ personnel raté ou relevé à tort, un rapport erroné. A schema read wrong, a personal field missed or flagged wrongly, a report that's wrong.
 labels: [bug]
 body:
   - type: textarea
     id: what
     attributes:
-      label: What happened, and what you expected
+      label: Ce qui s’est passé, et ce que vous attendiez · What happened, and what you expected
     validations:
       required: true
   - type: textarea
     id: schema
     attributes:
-      label: The smallest schema or config that shows it
-      description: A few lines of schema.prisma, a migration or law25.config.mjs. Leave out anything private.
+      label: Le plus petit schéma ou la plus petite configuration qui le montre · The smallest schema or config that shows it
+      description: Quelques lignes de schema.prisma, d’une migration ou de law25.config.mjs. Retirez tout ce qui est privé. A few lines of schema.prisma, a migration or law25.config.mjs; leave out anything private.
       render: text
   - type: input
     id: version
     attributes:
-      label: "maisongr-law25 version"
+      label: Version de maisongr-law25 · maisongr-law25 version
       description: "`npx maisongr-law25 --version`"
     validations:
       required: true

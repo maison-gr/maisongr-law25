@@ -1,15 +1,15 @@
-name: Feature request
-description: A schema source, a check or a part of the report you need.
+name: Demande de fonctionnalité · Feature request
+description: Une source de schéma, une vérification ou une partie du rapport dont vous avez besoin. A schema source, a check or a part of the report you need.
 labels: [enhancement]
 body:
   - type: textarea
     id: need
     attributes:
-      label: What you need, and why
-      description: The project it's for (stack, ORM) helps more than a proposed API. For anything about the law, the section it comes from.
+      label: Ce dont vous avez besoin, et pourquoi · What you need, and why
+      description: Le projet visé (pile, ORM) aide plus qu’une API proposée. Pour tout ce qui touche la loi, l’article dont il vient. The project it's for (stack, ORM) helps more than a proposed API; for anything about the law, the section it comes from.
     validations:
       required: true
   - type: textarea
     id: today
     attributes:
-      label: What you do today instead
+      label: Ce que vous faites aujourd’hui à la place · What you do today instead
