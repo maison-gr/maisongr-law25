@@ -1,18 +1,20 @@
-# Security
+# Sécurité
 
-## Reporting a problem
+**Français** · [English](SECURITY.en.md)
 
-Please report security problems privately, through GitHub: **Security → Report a vulnerability** on this repository. Don't open a public issue.
+## Signaler un problème
 
-Say what you found, how to reproduce it, and what it lets someone do. You'll get a reply within a week, and a fix or a plan once the problem is confirmed. Reports are credited in the release notes unless you'd rather not be named.
+Signalez les problèmes de sécurité en privé, par GitHub : **Security → Report a vulnerability** sur ce dépôt. N’ouvrez pas d’issue publique.
 
-## Supported versions
+Dites ce que vous avez trouvé, comment le reproduire, et ce que cela permet de faire. Vous aurez une réponse dans la semaine, et un correctif ou un plan une fois le problème confirmé. Les signalements sont mentionnés dans les notes de version, sauf si vous préférez ne pas être nommé.
 
-Security fixes go into the latest release.
+## Versions prises en charge
 
-## What the package does that matters here
+Les correctifs de sécurité vont dans la dernière version.
 
-- **It runs your config.** `law25.config.mjs` and `.js` are JavaScript modules, imported like any config file (ESLint's, Vite's): run the CLI only on a project you trust. A `.json` config is read as data.
-- **It reads** the config, the Prisma schema and the SQL migrations it finds or is given. It reads no database and no personal information: only names, types and comments.
-- **It writes** `law25.config.mjs` (`init`, never over an existing file) and the report files (`build`, in `docs/privacy/` or `--out`). Nothing else.
-- **It sends nothing anywhere.** No network request, no telemetry.
+## Ce que fait le paquet, et qui compte ici
+
+- **Il exécute votre configuration.** `law25.config.mjs` et `.js` sont des modules JavaScript, importés comme n’importe quel fichier de configuration (celui d’ESLint, de Vite) : ne lancez l’outil que sur un projet de confiance. Une configuration `.json` est lue comme des données.
+- **Il lit** la configuration, le schéma Prisma et les migrations SQL qu’il trouve ou qu’on lui donne. Il ne lit aucune base de données et aucun renseignement personnel : seulement des noms, des types et des commentaires.
+- **Il écrit** `law25.config.mjs` (`init`, jamais par-dessus un fichier existant) et les fichiers du rapport (`build`, dans `docs/privacy/` ou `--out`). Rien d’autre.
+- **Il n’envoie rien nulle part.** Aucune requête réseau, aucune télémétrie.
