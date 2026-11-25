@@ -13,7 +13,7 @@
 ![On a navy ledger: on the left, CI refusing a new Customer.phone field with no stated purpose or retention; on the right, the assessment filed in French, stamped approved.](.github/assets/hero.png)
 
 ```sh
-npx maisongr-law25 init     # law25.config.mjs, started from your Prisma schema or SQL migrations
+npx maisongr-law25 init     # law25.config.mjs, started from your schema (Prisma, Drizzle, Django, Rails, Entity Framework, JPA, GORM, SQL…)
 npx maisongr-law25 check    # every required entry written, every field that looks personal accounted for? exit 1 if not
 npx maisongr-law25 build    # docs/privacy/efvp.fr.md and docs/privacy/pia.en.md
 ```
@@ -33,7 +33,7 @@ The assessment is usually a document written once. Then the code moves on: a new
 
 ## How `check` works
 
-1. It reads your schema: a Prisma schema (`prisma/schema.prisma`, or a folder of `.prisma` files), or your SQL migrations in order (`supabase/migrations`, `migrations`, `db/migrations`…), following `CREATE TABLE`, `ADD COLUMN`, `DROP COLUMN` and `DROP TABLE` in PostgreSQL, MySQL, SQLite and SQL Server syntax. Any stack works through SQL: point `--sql` at a schema dump (`pg_dump --schema-only`, `mysqldump --no-data`, `rails db:schema:dump` with `structure.sql`) or at migrations written in SQL (Flyway, dbmate, golang-migrate, Supabase).
+1. It reads your schema where your stack describes it (see [Stacks it reads](#stacks-it-reads)): Prisma, the ORMs of JavaScript, Python, Ruby, PHP, C#, Java, Kotlin and Go, SQL migrations, or an OpenAPI or JSON Schema file.
 2. It flags every field that looks like personal information: by name (`email`, `phone`, `dateOfBirth`, `ipAddress`, `lastName`, `gender`…, and `name`, `city` or `location` on a table about people), or because a comment marks it `@personal`.
 3. Each flagged field must be listed in an item's `fields`, or explained in `notPersonal`. A field in the assessment that the schema no longer has is an error too.
 4. The assessment must be complete: every purpose and retention period written (in each language), no `TODO` left, a s. 17 assessment for every provider outside Québec, the next review date not past.
@@ -57,6 +57,33 @@ create table profiles (
   theme text -- @not-personal
 );
 ```
+
+The marker goes in a comment, in the language's own syntax (`// @personal`, `# @personal`, `/** @personal */`), on the field's line or just above it. In OpenAPI and JSON Schema, it is the property `x-personal: true` (or `false`).
+
+### Stacks it reads
+
+With no option, `check` looks first for a Prisma schema, then for the models of every ORM the code uses (read together when a project has several), then for SQL migrations, then for an OpenAPI or JSON Schema file. Dependency, build and test folders are never read: a test's data is not the project's.
+
+| Stack | What is read | A field's name |
+| --- | --- | --- |
+| Prisma | `prisma/schema.prisma`, or a folder of `.prisma` files | `User.email` |
+| Drizzle | `pgTable`, `mysqlTable`, `sqliteTable` | `users.email` (the variable and the key) |
+| TypeORM, MikroORM, sequelize-typescript, NestJS (Mongoose) | `@Entity`, `@Table` and `@Schema` classes, and their `@Column`, `@Property` and `@Prop` properties | `Customer.email` |
+| Sequelize | `sequelize.define`, `Model.init`, and migrations (`createTable`, `addColumn`, `removeColumn`) | `User.email` |
+| Mongoose | `new Schema({ … })`, named by `mongoose.model("User", …)` | `User.address.city` |
+| Django | the models' `models.…Field` fields, and those `AbstractUser` brings | `Customer.email` |
+| SQLAlchemy, Flask-SQLAlchemy, SQLModel | `Column`, `mapped_column`, `Mapped[…]`, `Table("…")` | `User.email` |
+| Rails | `db/schema.rb`, or the migrations in `db/migrate` | `users.email` |
+| Laravel | the migrations in `database/migrations` (`Schema::create`, `Schema::table`) | `users.email` |
+| Entity Framework | the classes of the context's `DbSet<…>`, their base classes, and what `IdentityUser` brings | `Customer.Email` |
+| JPA, Hibernate (Java, Kotlin) | `@Entity`, `@Embeddable` and `@MappedSuperclass` classes | `Customer.email` |
+| GORM | structs that embed `gorm.Model`, carry `gorm:"…"` tags or are passed to `AutoMigrate` | `User.Email` |
+| SQL | migrations in order (`supabase/migrations`, `migrations`, `db/migrations`…): `CREATE TABLE`, `ADD COLUMN`, `DROP COLUMN`, `DROP TABLE`, in PostgreSQL, MySQL, SQLite and SQL Server | `profiles.email` |
+| OpenAPI, JSON Schema | `components.schemas` (or `definitions`), the root and `$defs`, in JSON or YAML | `Customer.address.city` |
+
+Relations (foreign keys to another model, collections, navigation properties) are not fields: they are left out, as in Prisma. Migrations are read in file order, and their `down` part is ignored.
+
+To read somewhere else, name it: `--schema backend/src/main/java` (the option repeats). When the stack can't be told from the files, say it: `--schema contracts/signup.json --stack openapi`. Any stack also works through SQL: point `--sql` at a schema dump (`pg_dump --schema-only`, `mysqldump --no-data`) or at migrations written in SQL (Flyway, dbmate, golang-migrate, Supabase).
 
 ## The assessment
 
@@ -137,14 +164,17 @@ The sections cover the points ss. 3.3, 12 and 17 name, and the topics the [Commi
 
 A pull request that adds `users.phone` without saying why it's collected and how long it's kept fails, with the file and line of the new field.
 
-Options: `--config <file>`, `--prisma <path>`, `--sql <path>`, `--no-schema` (check the assessment alone), `--out <folder>` and `--lang fr|en` for `build`, `--json` for a machine-readable result. Exit codes: 0 done, 1 problems found, 2 a usage error.
+Options: `--config <file>`, `--schema <path>` (repeatable) and `--stack <name>`, `--prisma <path>`, `--sql <path>`, `--no-schema` (check the assessment alone), `--out <folder>` and `--lang fr|en` for `build`, `--json` for a machine-readable result. Exit codes: 0 done, 1 problems found, 2 a usage error.
 
 ## In code
 
 ```js
-import { validate, render, parsePrisma, parseSql, looksPersonal } from "maisongr-law25";
+import { findSchema, validate, render, parseDjango, looksPersonal } from "maisongr-law25";
 
-const problems = validate(assessment, parsePrisma(schemaText), "2026-11-25");
+// The schema found as the CLI finds it, or read by one reader (parsePrisma, parseDrizzle, parseJpa…).
+const schema = findSchema(process.cwd());
+const fields = parseDjango([{ file: "shop/models.py", source: modelsText }]);
+const problems = validate(assessment, schema?.fields ?? fields, "2026-11-25");
 const markdown = render(assessment, "fr");
 ```
 
@@ -155,7 +185,7 @@ The package ships an [Agent Skill](skills/maisongr-law25/SKILL.md) and an [`llms
 ## Limits
 
 - Personal fields are found by name and by marker. A free-text field (`notes`, `message`) can hold personal information under any name: mark it `@personal`.
-- It reads Prisma and SQL migrations. Drizzle, TypeORM, Mongoose and others aren't read yet: use `--no-schema`, and list `fields` by hand.
+- It reads schemas without running them, line by line, with no dependency: a model built at run time (columns added in a loop, a function returning a columns object, a mixin from another package) isn't seen. Point `--sql` at a schema dump then, or list `fields` by hand.
 - It checks that the assessment is complete and matches the schema, not that what it says is true or sufficient. That is the assessment's job, and the advisor's.
 - It doesn't decide whether an assessment is required, or whether it is enough.
 - It covers the privacy impact assessment of the private sector Act. Public bodies fall under a different Act (CQLR c. A-2.1), and other assessments (such as for communication for research purposes) aren't covered.

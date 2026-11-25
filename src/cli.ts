@@ -6,7 +6,8 @@
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { basename, join, relative, resolve } from "node:path";
-import { CONFIG_NAMES, findConfig, findSchema, loadConfig } from "./load.js";
+import { CONFIG_NAMES, describe, findConfig, findSchema, loadConfig } from "./load.js";
+import { STACKS, type Stack } from "./readers/index.js";
 import { starter } from "./init.js";
 import { render } from "./render.js";
 import { languagesOf, validate } from "./validate.js";
@@ -21,6 +22,9 @@ Usage
 
 Options
   --config <file>     default: law25.config.mjs, .js or .json in this folder
+  --schema <path>     the files or folder that describe the data (repeatable); found by itself otherwise
+  --stack <name>      the stack they are in, when it can't be told from them:
+                      ${STACKS.join(", ")}
   --prisma <path>     a schema.prisma file or a folder of them (default: prisma/schema.prisma)
   --sql <path>        a folder of SQL migrations or one file (default: supabase/migrations, migrations…)
   --no-schema         check the assessment alone
@@ -34,12 +38,12 @@ The report is not legal advice; have it reviewed by a qualified advisor.
 
 class Usage extends Error {}
 
-interface Args { command: "init" | "check" | "build"; config?: string; prisma?: string; sql?: string; noSchema: boolean; out: string; lang?: Language; json: boolean }
+interface Args { command: "init" | "check" | "build"; config?: string; prisma?: string; sql?: string; schema: string[]; stack?: Stack; noSchema: boolean; out: string; lang?: Language; json: boolean }
 
 function parse(argv: string[]): Args {
   const [command, ...rest] = argv;
   if (command !== "init" && command !== "check" && command !== "build") throw new Usage(command ? `unknown command "${command}"` : "say init, check or build");
-  const args: Args = { command, noSchema: false, out: "docs/privacy", json: false };
+  const args: Args = { command, schema: [], noSchema: false, out: "docs/privacy", json: false };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i]!;
     const value = () => {
@@ -51,6 +55,12 @@ function parse(argv: string[]): Args {
       case "--config": args.config = value(); break;
       case "--prisma": args.prisma = value(); break;
       case "--sql": args.sql = value(); break;
+      case "--schema": args.schema.push(value()); break;
+      case "--stack": {
+        const v = value() as Stack;
+        if (!STACKS.includes(v)) throw new Usage(`--stack is one of ${STACKS.join(", ")}`);
+        args.stack = v; break;
+      }
       case "--no-schema": args.noSchema = true; break;
       case "--out": args.out = value(); break;
       case "--lang": {
@@ -74,8 +84,9 @@ async function main(argv: string[]): Promise<number> {
   if (argv.includes("--version")) { process.stdout.write(`${version()}\n`); return 0; }
   const args = parse(argv);
   const cwd = process.cwd();
-  const schema = args.noSchema ? null : findSchema(cwd, { prisma: args.prisma, sql: args.sql });
-  const schemaNote = schema ? `${schema.kind === "prisma" ? "the Prisma schema" : "the SQL migrations"} (${schema.files.length === 1 ? schema.files[0] : `${schema.files.length} files`})` : null;
+  if (args.stack && !args.schema.length) throw new Usage("--stack goes with --schema <path>");
+  const schema = args.noSchema ? null : findSchema(cwd, { prisma: args.prisma, sql: args.sql, schema: args.schema, stack: args.stack });
+  const schemaNote = schema ? describe(schema) : null;
 
   if (args.command === "init") {
     const existing = findConfig(cwd, args.config);
@@ -87,7 +98,7 @@ async function main(argv: string[]): Promise<number> {
     writeFileSync(target, starter(schema?.fields ?? [], today(), schemaNote));
     const count = schema ? schema.fields.length : 0;
     if (args.json) process.stdout.write(`${JSON.stringify({ ok: true, config: relative(cwd, target), schema: schema?.files ?? [], fields: count })}\n`);
-    say(args, `Wrote ${relative(cwd, target)}${schemaNote ? `, started from ${schemaNote}` : " (no schema found: pass --prisma or --sql)"}.`);
+    say(args, `Wrote ${relative(cwd, target)}${schemaNote ? `, started from ${schemaNote}` : " (no schema found: pass --schema <path>)"}.`);
     say(args, "Replace each TODO, then run: npx maisongr-law25 check");
     return 0;
   }

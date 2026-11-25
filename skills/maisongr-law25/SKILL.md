@@ -6,7 +6,7 @@ license: MIT
 
 # maisongr-law25
 
-The project describes its personal information in `law25.config.mjs`. `check` compares it with the Prisma schema or SQL migrations; `build` writes the report in French and English.
+The project describes its personal information in `law25.config.mjs`. `check` compares it with the project's schema, found by itself: Prisma, the models of the ORMs it uses (Drizzle, TypeORM, Sequelize, Mongoose, Django, SQLAlchemy, Rails, Laravel, Entity Framework, JPA, GORM), SQL migrations, or OpenAPI (`--schema <path> --stack <name>` reads given paths); `build` writes the report in French and English.
 
 ## When the schema changed
 

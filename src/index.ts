@@ -3,4 +3,12 @@ export type { Assessment, DataItem, Language, Provider, Risk, Source, Stage, Sta
 export { validate, type Problem } from "./validate.js";
 export { render } from "./render.js";
 export { parsePrisma, parseSql, type Field } from "./schema.js";
+export { parseDecorated, parseDrizzle, parseMongoose, parseSequelize } from "./readers/javascript.js";
+export { parseDjango, parseSqlAlchemy } from "./readers/python.js";
+export { parseLaravel, parseRails } from "./readers/migrations.js";
+export { parseEntityFramework, parseGorm, parseJpa } from "./readers/typed.js";
+export { parseOpenApi } from "./readers/openapi.js";
+export { READERS, STACKS, type Stack } from "./readers/index.js";
+export type { SourceFile } from "./readers/scan.js";
+export { findSchema, describe, type SchemaSource } from "./load.js";
 export { looksPersonal } from "./personal.js";

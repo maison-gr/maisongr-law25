@@ -13,7 +13,7 @@
 ![Sur un registre bleu marine : à gauche, la CI qui refuse un nouveau champ Customer.phone sans finalité ni durée de conservation; à droite, l’évaluation classée en français, estampillée « approuvée ».](.github/assets/hero.png)
 
 ```sh
-npx maisongr-law25 init     # law25.config.mjs, amorcé à partir de votre schéma Prisma ou de vos migrations SQL
+npx maisongr-law25 init     # law25.config.mjs, amorcé à partir de votre schéma (Prisma, Drizzle, Django, Rails, Entity Framework, JPA, GORM, SQL…)
 npx maisongr-law25 check    # tout est rempli, chaque champ qui semble personnel est déclaré? Sinon, code de sortie 1
 npx maisongr-law25 build    # docs/privacy/efvp.fr.md et docs/privacy/pia.en.md
 ```
@@ -35,7 +35,7 @@ L’évaluation est souvent un document rédigé une fois. Puis le code évolue�
 
 ## Ce que vérifie `check`
 
-1. Il lit votre schéma : un schéma Prisma (`prisma/schema.prisma`, ou un dossier de fichiers `.prisma`), ou vos migrations SQL dans l’ordre (`supabase/migrations`, `migrations`, `db/migrations`…), en suivant `CREATE TABLE`, `ADD COLUMN`, `DROP COLUMN` et `DROP TABLE` en syntaxe PostgreSQL, MySQL, SQLite et SQL Server. Toute pile technologique passe par le SQL : pointez `--sql` vers un vidage du schéma (`pg_dump --schema-only`, `mysqldump --no-data`, `rails db:schema:dump` avec `structure.sql`) ou vers des migrations écrites en SQL (Flyway, dbmate, golang-migrate, Supabase).
+1. Il lit votre schéma, là où votre pile technologique le décrit (voir [Les piles lues](#les-piles-lues)) : Prisma, les ORM de JavaScript, de Python, de Ruby, de PHP, de C#, de Java, de Kotlin et de Go, les migrations SQL, ou un fichier OpenAPI ou JSON Schema.
 2. Il relève chaque champ qui semble contenir un renseignement personnel : par son nom (`email`, `phone`, `dateOfBirth`, `ipAddress`, `lastName`, `gender`…, et `name`, `city` ou `location` dans une table qui décrit des personnes), ou parce qu’un commentaire le marque `@personal`.
 3. Chaque champ relevé doit figurer dans les `fields` d’un renseignement, ou être expliqué dans `notPersonal`. Un champ de l’évaluation que le schéma n’a plus est aussi une erreur.
 4. L’évaluation doit être complète : chaque finalité et chaque durée de conservation écrites (dans chaque langue), aucun `TODO`, une évaluation selon l’article 17 pour chaque fournisseur à l’extérieur du Québec, une date de révision qui n’est pas dépassée.
@@ -59,6 +59,33 @@ create table profiles (
   theme text -- @not-personal
 );
 ```
+
+Le marqueur s’écrit dans un commentaire, dans la syntaxe du langage (`// @personal`, `# @personal`, `/** @personal */`), sur la ligne du champ ou juste au-dessus. Dans OpenAPI et JSON Schema, c’est la propriété `x-personal: true` (ou `false`).
+
+### Les piles lues
+
+Sans option, `check` cherche d’abord un schéma Prisma, puis les modèles de chaque ORM que le code utilise (lus ensemble si le projet en a plusieurs), puis des migrations SQL, puis un fichier OpenAPI ou JSON Schema. Les dossiers de dépendances, de compilation et de tests ne sont jamais lus : les données d’un test ne sont pas celles du projet.
+
+| Pile | Ce qui est lu | Nom d’un champ |
+| --- | --- | --- |
+| Prisma | `prisma/schema.prisma`, ou un dossier de fichiers `.prisma` | `User.email` |
+| Drizzle | `pgTable`, `mysqlTable`, `sqliteTable` | `users.email` (la variable et la clé) |
+| TypeORM, MikroORM, sequelize-typescript, NestJS (Mongoose) | les classes `@Entity`, `@Table`, `@Schema`, et leurs propriétés `@Column`, `@Property`, `@Prop` | `Customer.email` |
+| Sequelize | `sequelize.define`, `Model.init`, et les migrations (`createTable`, `addColumn`, `removeColumn`) | `User.email` |
+| Mongoose | `new Schema({ … })`, nommé par `mongoose.model("User", …)` | `User.address.city` |
+| Django | les champs `models.…Field` des modèles, et ceux qu’apporte `AbstractUser` | `Customer.email` |
+| SQLAlchemy, Flask-SQLAlchemy, SQLModel | `Column`, `mapped_column`, `Mapped[…]`, `Table("…")` | `User.email` |
+| Rails | `db/schema.rb`, ou les migrations de `db/migrate` | `users.email` |
+| Laravel | les migrations de `database/migrations` (`Schema::create`, `Schema::table`) | `users.email` |
+| Entity Framework | les classes des `DbSet<…>` du contexte, leurs classes de base, et ce qu’apporte `IdentityUser` | `Customer.Email` |
+| JPA, Hibernate (Java, Kotlin) | les classes `@Entity`, `@Embeddable`, `@MappedSuperclass` | `Customer.email` |
+| GORM | les structures qui intègrent `gorm.Model`, portent des étiquettes `gorm:"…"` ou sont passées à `AutoMigrate` | `User.Email` |
+| SQL | les migrations dans l’ordre (`supabase/migrations`, `migrations`, `db/migrations`…) : `CREATE TABLE`, `ADD COLUMN`, `DROP COLUMN`, `DROP TABLE`, en PostgreSQL, MySQL, SQLite et SQL Server | `profiles.email` |
+| OpenAPI, JSON Schema | `components.schemas` (ou `definitions`), la racine et `$defs`, en JSON ou en YAML | `Customer.address.city` |
+
+Les relations (clés étrangères vers un autre modèle, collections, navigations) ne sont pas des champs : elles sont laissées de côté, comme dans Prisma. Une migration est lue dans l’ordre de ses fichiers, et sa partie `down` est ignorée.
+
+Pour lire un autre endroit, nommez-le : `--schema backend/src/main/java` (l’option se répète). Si la pile ne se reconnaît pas d’elle-même, précisez-la : `--schema contrats/inscription.json --stack openapi`. Toute pile passe aussi par le SQL : pointez `--sql` vers un vidage du schéma (`pg_dump --schema-only`, `mysqldump --no-data`) ou vers des migrations écrites en SQL (Flyway, dbmate, golang-migrate, Supabase).
 
 ## L’évaluation
 
@@ -139,14 +166,17 @@ Les sections couvrent les points que nomment les articles 3.3, 12 et 17, et les 
 
 Une demande de fusion qui ajoute `users.phone` sans dire pourquoi on le recueille ni combien de temps on le garde échoue, avec le fichier et la ligne du nouveau champ.
 
-Options : `--config <fichier>`, `--prisma <chemin>`, `--sql <chemin>`, `--no-schema` (vérifier l’évaluation seule), `--out <dossier>` et `--lang fr|en` pour `build`, `--json` pour un résultat lisible par une machine. Codes de sortie : 0 terminé, 1 problèmes trouvés, 2 erreur d’utilisation.
+Options : `--config <fichier>`, `--schema <chemin>` (répétable) et `--stack <pile>`, `--prisma <chemin>`, `--sql <chemin>`, `--no-schema` (vérifier l’évaluation seule), `--out <dossier>` et `--lang fr|en` pour `build`, `--json` pour un résultat lisible par une machine. Codes de sortie : 0 terminé, 1 problèmes trouvés, 2 erreur d’utilisation.
 
 ## Dans le code
 
 ```js
-import { validate, render, parsePrisma, parseSql, looksPersonal } from "maisongr-law25";
+import { findSchema, validate, render, parseDjango, looksPersonal } from "maisongr-law25";
 
-const problems = validate(assessment, parsePrisma(schemaText), "2026-11-25");
+// Le schéma trouvé comme le fait la CLI, ou lu par un lecteur précis (parsePrisma, parseDrizzle, parseJpa…).
+const schema = findSchema(process.cwd());
+const fields = parseDjango([{ file: "shop/models.py", source: modelsText }]);
+const problems = validate(assessment, schema?.fields ?? fields, "2026-11-25");
 const markdown = render(assessment, "fr");
 ```
 
@@ -157,7 +187,7 @@ Le paquet fournit une [Agent Skill](skills/maisongr-law25/SKILL.md) et un [`llms
 ## Limites
 
 - Les champs personnels sont repérés par leur nom et par un marqueur. Un champ de texte libre (`notes`, `message`) peut contenir des renseignements personnels sous n’importe quel nom : marquez-le `@personal`.
-- Il lit Prisma et les migrations SQL. Drizzle, TypeORM, Mongoose et les autres ne sont pas encore lus : utilisez `--no-schema`, et listez les `fields` à la main.
+- Il lit les schémas sans les exécuter, ligne par ligne, sans dépendance : un modèle bâti dynamiquement (des colonnes ajoutées par une boucle, une fonction qui retourne un objet de colonnes, un mixin dans un autre paquet) n’est pas vu. Pointez alors `--sql` vers un vidage du schéma, ou listez les `fields` à la main.
 - Il vérifie que l’évaluation est complète et conforme au schéma, pas que ce qu’elle affirme est exact ou suffisant. C’est le rôle de l’évaluation elle-même, et de la personne qui la valide.
 - Il ne décide pas si une évaluation est requise, ni si elle suffit.
 - Il couvre l’évaluation de la loi sur le secteur privé. Les organismes publics relèvent d’une autre loi (RLRQ, c. A-2.1), et les autres évaluations (par exemple pour une communication à des fins de recherche) ne sont pas couvertes.

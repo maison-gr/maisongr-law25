@@ -16,7 +16,7 @@ export interface Field {
   line: number;
 }
 
-const marker = (text: string): boolean | undefined =>
+export const marker = (text: string): boolean | undefined =>
   /@not-personal\b/.test(text) ? false : /@personal\b/.test(text) ? true : undefined;
 
 export function parsePrisma(source: string, file = "schema.prisma"): Field[] {
