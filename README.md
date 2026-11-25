@@ -8,6 +8,8 @@
 ![Runtime dependencies: 0](https://img.shields.io/badge/runtime_dependencies-0-1b1a17)
 ![Node 20.9+](https://img.shields.io/badge/node-%E2%89%A520.9-1b1a17)
 
+![law25.config.mjs and prisma/schema.prisma: on the left, CI failing on a new phone field with no stated purpose or retention; on the right, the assessment written in French.](.github/assets/hero.png)
+
 ```sh
 npx maisongr-law25 init     # law25.config.mjs, started from your Prisma schema or SQL migrations
 npx maisongr-law25 check    # every required entry written, every field that looks personal accounted for? exit 1 if not
@@ -161,6 +163,15 @@ The package ships an [Agent Skill](skills/maisongr-law25/SKILL.md) and an [`llms
 ## Requirements
 
 Node.js 20.9 or later, on Linux, macOS and Windows. No runtime dependencies. An ES module: from CommonJS, `require("maisongr-law25")` works on Node 22.12 and later; on Node 20, use `await import("maisongr-law25")`. The CLI works the same everywhere, in any project: it needs nothing installed beside it, whatever the project's language.
+
+## More from Maison GR
+
+Open source from [Maison GR](https://www.maisongr.com), a software studio in Québec City:
+
+- [maisongr-sitemap](https://github.com/maison-gr/maisongr-sitemap): one sitemap, two readers. The XML search engines need, and a page in your site's own design for people.
+- [Maison GR Sitemap for WordPress](https://github.com/maison-gr/maisongr-sitemap-wordpress): the same sitemap for WordPress, in your theme's colours and type.
+- [maisongr-skills](https://github.com/maison-gr/maisongr-skills): one engineering standard for every AI coding agent: Claude Code, Codex, Cursor, Copilot, Gemini CLI.
+- [maisongr-typo](https://github.com/maison-gr/maisongr-typo): French typography, the Québec way, with a CI check.
 
 ## License
 
