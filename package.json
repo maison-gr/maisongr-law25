@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "A Québec Law 25 privacy impact assessment kept next to the code: checked against your Prisma schema or SQL migrations in CI, written out in French and English.",
   "license": "MIT",
-  "author": "Maison GR (https://www.maisongr.com)",
+  "author": "Maison GR Inc. (https://www.maisongr.com)",
   "homepage": "https://github.com/maison-gr/maisongr-law25#readme",
   "repository": {
     "type": "git",

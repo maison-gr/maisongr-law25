@@ -164,4 +164,4 @@ Node.js 20.9 or later, on Linux, macOS and Windows. No runtime dependencies. An 
 
 ## License
 
-MIT, © Maison GR. Not affiliated with or endorsed by the Commission d'accès à l'information.
+MIT, © Maison GR Inc. Not affiliated with or endorsed by the Commission d'accès à l'information.
