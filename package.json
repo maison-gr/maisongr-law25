@@ -1,0 +1,68 @@
+{
+  "name": "maisongr-law25",
+  "version": "1.0.0",
+  "description": "A Québec Law 25 privacy impact assessment kept next to the code: checked against your Prisma schema or SQL migrations in CI, written out in French and English.",
+  "license": "MIT",
+  "author": "Maison GR (https://www.maisongr.com)",
+  "homepage": "https://github.com/maison-gr/maisongr-law25#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maison-gr/maisongr-law25.git"
+  },
+  "bugs": "https://github.com/maison-gr/maisongr-law25/issues",
+  "type": "module",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20.9"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "maisongr-law25": "dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "llms.txt",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "prepack": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "law-25",
+    "loi-25",
+    "quebec",
+    "privacy",
+    "privacy-impact-assessment",
+    "pia",
+    "efvp",
+    "dpia",
+    "personal-information",
+    "compliance",
+    "prisma",
+    "supabase",
+    "sql",
+    "ci",
+    "agent-skill"
+  ],
+  "devDependencies": {
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}

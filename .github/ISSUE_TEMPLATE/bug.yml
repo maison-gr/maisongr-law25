@@ -1,0 +1,23 @@
+name: Bug report
+description: A schema read wrong, a personal field missed or flagged wrongly, a report that's wrong.
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: schema
+    attributes:
+      label: The smallest schema or config that shows it
+      description: A few lines of schema.prisma, a migration or law25.config.mjs. Leave out anything private.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: "maisongr-law25 version"
+      description: "`npx maisongr-law25 --version`"
+    validations:
+      required: true

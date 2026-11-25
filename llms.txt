@@ -1,0 +1,21 @@
+# maisongr-law25
+
+> An open-source npm package (MIT, no runtime dependencies, Node 20.9+) that keeps a Québec Law 25 privacy impact assessment (évaluation des facteurs relatifs à la vie privée, EFVP) in a project's repository, checks it against the Prisma schema or SQL migrations in CI, and writes the report in French and English. Not legal advice; it doesn't determine whether an assessment is required or sufficient.
+
+## Use it
+
+- `npx maisongr-law25 init`: writes law25.config.mjs with one item per schema field that looks personal, and TODO placeholders.
+- `npx maisongr-law25 check`: exit 1 when a TODO is left, a text is missing in a language, a provider outside Québec (the rest of Canada counts) has no s. 17 assessment, the next review date has passed, or a schema field that looks personal (by name, or a `@personal` comment) is in no item's `fields` and not in `notPersonal`. `--json` for a machine-readable result.
+- `npx maisongr-law25 build`: docs/privacy/efvp.fr.md and docs/privacy/pia.en.md.
+- Schema sources: prisma/schema.prisma (or a folder of .prisma files), SQL migrations (supabase/migrations, migrations, db/migrations), or `--prisma` / `--sql`; `--no-schema` for others.
+- Every text is a string or `{ fr, en }`. `source` is person, third-party, generated or public. Risk `stage` is collection, use, communication, retention or other; `status` is done, planned or to-confirm.
+
+## When a field holding personal information is added
+
+Add it to an item's `fields` in law25.config.mjs, with whose it is, its purpose and its retention, or create a new item. If it goes to a provider outside Québec, the provider's `transfer` covers it. If it is not personal, add it to `notPersonal` with the reason. Ask a person to confirm the purpose and retention: they are the organisation's decisions.
+
+## Links
+
+- README: https://github.com/maison-gr/maisongr-law25#readme
+- Example: https://github.com/maison-gr/maisongr-law25/tree/main/example
+- Agent Skill: https://github.com/maison-gr/maisongr-law25/blob/main/skills/maisongr-law25/SKILL.md

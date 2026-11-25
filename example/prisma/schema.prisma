@@ -1,0 +1,44 @@
+// A fictional bakery's ordering app, for the example assessment beside it.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  STAFF
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  firstName String?
+  phone     String?
+  role      Role     @default(CUSTOMER)
+  /// Allergies the customer chooses to tell us, for their orders.
+  /// @personal
+  allergies String?
+  createdAt DateTime @default(now())
+  orders    Order[]
+}
+
+model Order {
+  id         String   @id @default(cuid())
+  customer   Customer @relation(fields: [customerId], references: [id])
+  customerId String
+  pickupAt   DateTime
+  total      Int
+  note       String?
+  createdAt  DateTime @default(now())
+}
+
+model Product {
+  id    String @id @default(cuid())
+  name  String
+  price Int
+}
