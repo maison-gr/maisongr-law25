@@ -11,4 +11,4 @@ export { parseOpenApi } from "./readers/openapi.js";
 export { READERS, STACKS, type Stack } from "./readers/index.js";
 export type { SourceFile } from "./readers/scan.js";
 export { findSchema, describe, type SchemaSource } from "./load.js";
-export { looksPersonal } from "./personal.js";
+export { looksPersonal, personalFields } from "./personal.js";

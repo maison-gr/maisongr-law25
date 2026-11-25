@@ -13,6 +13,14 @@ describe("performance", () => {
     expect(performance.now() - started).toBeLessThan(1500);
   });
 
+  it("SQL full of comments, unclosed ones, quotes and keyword lines", () => {
+    const started = performance.now();
+    for (const source of ["/*".repeat(N / 2), "-- drop table t;\n".repeat(N / 16), "'".repeat(N), `create table t (${"key text, ".repeat(N / 10)})`, `create table t (${"/* , ) */".repeat(N / 9)})`, `alter table t ${"add key k (a), ".repeat(N / 15)};`]) {
+      parseSql([{ file: "a.sql", source }]);
+    }
+    expect(performance.now() - started).toBeLessThan(1500);
+  });
+
   it("a long Prisma field line", () => {
     const started = performance.now();
     parsePrisma(`model User {\n  a a${"aa".repeat(N / 2)}\n}`);

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { parsePrisma } from "../src/schema.js";
 import { validate } from "../src/validate.js";
 import { render } from "../src/render.js";
+import { starter } from "../src/init.js";
 import type { Assessment } from "../src/types.js";
 
 // The example is a plain .mjs config, as a project writes it.
@@ -90,6 +91,21 @@ describe("validate", () => {
       "risks[0].stage: must be one of collection, use, communication, retention, other",
       "risks[0].status: must be one of done, planned, to-confirm",
     ]);
+  });
+});
+
+describe("init", () => {
+  // Found starting Resistaa's assessment (25 Nov 2026): a mood got the same commented-out "sensitive" line as an email.
+  it("asks why sensitive information is sensitive (s. 12), and leaves the line commented for the rest", () => {
+    const at = { file: "a.sql", line: 1, type: "text" };
+    const config = starter([
+      { ref: "daily_checkins.mood", model: "daily_checkins", name: "mood", ...at },
+      { ref: "profiles.email", model: "profiles", name: "email", ...at },
+    ], TODAY, null);
+    const [mood, email] = config.split("    {").slice(1);
+    expect(mood).toMatch(/\n {6}sensitive: "TODO: why it is sensitive \(s\. 12\): a mood or emotional state \(possibly health information\)",/);
+    expect(email).toMatch(/\n {6}\/\/ sensitive: /);
+    expect(email).not.toMatch(/\n {6}sensitive: /);
   });
 });
 

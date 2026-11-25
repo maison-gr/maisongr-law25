@@ -1,7 +1,7 @@
 // `init`: a config to start from, with one item per field of the schema that looks personal and a placeholder (TODO)
 // everywhere the project has to answer. `check` fails until every TODO is written.
 
-import { looksPersonal } from "./personal.js";
+import { personalFields } from "./personal.js";
 import type { Field } from "./schema.js";
 
 const q = (s: string) => JSON.stringify(s);
@@ -12,10 +12,13 @@ function label(name: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+/** What the heuristic finds that is sensitive by nature (s. 12): the starter asks why, and check waits for the answer. */
+const SENSITIVE = /health|sensitive|biometric|religious|ethnic|sexual|government identifier|social insurance|passport|bank account|payment card|financial|nationality/;
+
 export function starter(fields: Field[], today: string, schemaNote: string | null): string {
-  const personal = fields.filter((f) => looksPersonal(f));
+  const personal = personalFields(fields);
   const seen = new Map<string, number>();
-  const items = personal.map((f) => {
+  const items = personal.map(({ field: f, why }) => {
     let name = `${label(f.name)} (${f.model})`;
     const n = seen.get(name) ?? 0;
     seen.set(name, n + 1);
@@ -29,7 +32,7 @@ export function starter(fields: Field[], today: string, schemaNote: string | nul
       retention: "TODO: how long it is kept, and how it is destroyed or anonymised",
       storedIn: "TODO: where it is stored (service and region)",
       access: "TODO: who can see it",
-      // sensitive: "Health information: …", // only when it is sensitive (s. 12)
+      ${SENSITIVE.test(why) ? `sensitive: ${q(`TODO: why it is sensitive (s. 12): ${why}`)},` : `// sensitive: "Health information: …", // only when it is sensitive (s. 12)`}
     },`;
   });
   const next = `${Number(today.slice(0, 4)) + 1}${today.slice(4)}`;
