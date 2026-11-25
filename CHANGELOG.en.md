@@ -6,6 +6,8 @@ All notable changes to `maisongr-law25`. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-25
+
 ### Fixed
 
 - SQL migrations: a statement written in a comment (`-- Rollback: DROP TABLE notes;`, `/* … */`) is no longer run. In Resistaa's migrations it made four tables vanish, `email_log` among them.
