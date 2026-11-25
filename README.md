@@ -1,19 +1,21 @@
 # maisongr-law25
 
-**Your Law 25 privacy impact assessment, next to your code.** Describe the personal information your app handles in one file; `check` fails CI when the schema stores a field that looks personal and that the assessment doesn't account for, and `build` writes the assessment in French and English.
+**Français** · [English](README.en.md)
 
-[![npm version](https://img.shields.io/npm/v/maisongr-law25?color=1b1a17)](https://www.npmjs.com/package/maisongr-law25)
+**Votre évaluation des facteurs relatifs à la vie privée (EFVP), à côté de votre code.** Décrivez dans un seul fichier les renseignements personnels que votre application traite. `check` fait échouer la CI quand le schéma stocke un champ qui semble personnel et dont l’évaluation ne rend pas compte, et `build` rédige l’évaluation en français et en anglais.
+
+[![npm version](https://img.shields.io/npm/v/maisongr-law25?color=0b1b33)](https://www.npmjs.com/package/maisongr-law25)
 [![CI](https://github.com/maison-gr/maisongr-law25/actions/workflows/ci.yml/badge.svg)](https://github.com/maison-gr/maisongr-law25/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-1b1a17)](LICENSE)
-![Runtime dependencies: 0](https://img.shields.io/badge/runtime_dependencies-0-1b1a17)
-![Node 20.9+](https://img.shields.io/badge/node-%E2%89%A520.9-1b1a17)
+[![Licence : MIT](https://img.shields.io/badge/licence-MIT-0b1b33)](LICENSE)
+![Dépendances à l’exécution : 0](https://img.shields.io/badge/d%C3%A9pendances-0-0b1b33)
+![Node 20.9+](https://img.shields.io/badge/node-%E2%89%A520.9-0b1b33)
 
-![law25.config.mjs and prisma/schema.prisma: on the left, CI failing on a new phone field with no stated purpose or retention; on the right, the assessment written in French.](.github/assets/hero.png)
+![Sur un registre bleu marine : à gauche, la CI qui refuse un nouveau champ Customer.phone sans finalité ni durée de conservation; à droite, l’évaluation classée en français, estampillée « approuvée ».](.github/assets/hero.png)
 
 ```sh
-npx maisongr-law25 init     # law25.config.mjs, started from your Prisma schema or SQL migrations
-npx maisongr-law25 check    # every required entry written, every field that looks personal accounted for? exit 1 if not
-npx maisongr-law25 build    # docs/privacy/efvp.fr.md and docs/privacy/pia.en.md
+npx maisongr-law25 init     # law25.config.mjs, amorcé à partir de votre schéma Prisma ou de vos migrations SQL
+npx maisongr-law25 check    # tout est rempli, chaque champ qui semble personnel est déclaré? Sinon, code de sortie 1
+npx maisongr-law25 build    # docs/privacy/efvp.fr.md et docs/privacy/pia.en.md
 ```
 
 ```text
@@ -21,26 +23,28 @@ npx maisongr-law25 build    # docs/privacy/efvp.fr.md and docs/privacy/pia.en.md
 1 problem in law25.config.mjs (checked against the Prisma schema (prisma/schema.prisma), 16 fields).
 ```
 
-> This package helps you write and maintain an assessment. It is not legal advice, and it does not determine whether an assessment is required or sufficient: have it reviewed by a qualified advisor. Provided as is, without warranty (see [LICENSE](LICENSE)). The legislation prevails.
+Les commandes et leurs messages sont en anglais, comme la plupart des outils de développement; les rapports, eux, sont en français et en anglais.
 
-## Why
+> Ce paquet aide à rédiger et à tenir à jour une évaluation. Ce n’est pas un avis juridique, et il ne détermine pas si une évaluation est requise ni si elle est suffisante : faites-la valider par une personne qualifiée. Fourni tel quel, sans garantie (voir la [LICENCE](LICENSE)). La loi prévaut.
 
-Québec's *Act respecting the protection of personal information in the private sector* (CQLR c. P-39.1), as amended by Law 25, requires a privacy impact assessment for any project to acquire, develop or overhaul an information system or electronic service delivery system involving the collection, use, communication, keeping or destruction of personal information (s. 3.3), and before personal information is communicated outside Québec, or someone outside Québec is entrusted with it (s. 17). Most apps do both: a database, an email provider, a hosting region. Outside Québec includes the rest of Canada.
+## Pourquoi
 
-The assessment is usually a document written once. Then the code moves on: a new column, a new provider, a field nobody remembers adding. This package keeps the assessment in the repository, beside the schema it describes, and makes CI say when they drift apart.
+La *Loi sur la protection des renseignements personnels dans le secteur privé* (RLRQ, c. P-39.1), telle que modifiée par la Loi 25, exige une évaluation des facteurs relatifs à la vie privée pour tout projet d’acquisition, de développement ou de refonte d’un système d’information ou de prestation électronique de services qui implique la collecte, l’utilisation, la communication, la conservation ou la destruction de renseignements personnels (art. 3.3), et avant de communiquer des renseignements personnels à l’extérieur du Québec ou d’en confier la charge à quelqu’un à l’extérieur du Québec (art. 17). La plupart des applications font les deux : une base de données, un fournisseur de courriels, une région d’hébergement. L’extérieur du Québec comprend le reste du Canada.
 
-## How `check` works
+L’évaluation est souvent un document rédigé une fois. Puis le code évolue : une nouvelle colonne, un nouveau fournisseur, un champ que personne ne se rappelle avoir ajouté. Ce paquet garde l’évaluation dans le dépôt, à côté du schéma qu’elle décrit, et la CI signale l’écart dès qu’ils divergent.
 
-1. It reads your schema: a Prisma schema (`prisma/schema.prisma`, or a folder of `.prisma` files), or your SQL migrations in order (`supabase/migrations`, `migrations`, `db/migrations`…), following `CREATE TABLE`, `ADD COLUMN`, `DROP COLUMN` and `DROP TABLE` in PostgreSQL, MySQL, SQLite and SQL Server syntax. Any stack works through SQL: point `--sql` at a schema dump (`pg_dump --schema-only`, `mysqldump --no-data`, `rails db:schema:dump` with `structure.sql`) or at migrations written in SQL (Flyway, dbmate, golang-migrate, Supabase).
-2. It flags every field that looks like personal information: by name (`email`, `phone`, `dateOfBirth`, `ipAddress`, `lastName`, `gender`…, and `name`, `city` or `location` on a table about people), or because a comment marks it `@personal`.
-3. Each flagged field must be listed in an item's `fields`, or explained in `notPersonal`. A field in the assessment that the schema no longer has is an error too.
-4. The assessment must be complete: every purpose and retention period written (in each language), no `TODO` left, a s. 17 assessment for every provider outside Québec, the next review date not past.
+## Ce que vérifie `check`
 
-Mark what the names don't tell:
+1. Il lit votre schéma : un schéma Prisma (`prisma/schema.prisma`, ou un dossier de fichiers `.prisma`), ou vos migrations SQL dans l’ordre (`supabase/migrations`, `migrations`, `db/migrations`…), en suivant `CREATE TABLE`, `ADD COLUMN`, `DROP COLUMN` et `DROP TABLE` en syntaxe PostgreSQL, MySQL, SQLite et SQL Server. Toute pile technologique passe par le SQL : pointez `--sql` vers un vidage du schéma (`pg_dump --schema-only`, `mysqldump --no-data`, `rails db:schema:dump` avec `structure.sql`) ou vers des migrations écrites en SQL (Flyway, dbmate, golang-migrate, Supabase).
+2. Il relève chaque champ qui semble contenir un renseignement personnel : par son nom (`email`, `phone`, `dateOfBirth`, `ipAddress`, `lastName`, `gender`…, et `name`, `city` ou `location` dans une table qui décrit des personnes), ou parce qu’un commentaire le marque `@personal`.
+3. Chaque champ relevé doit figurer dans les `fields` d’un renseignement, ou être expliqué dans `notPersonal`. Un champ de l’évaluation que le schéma n’a plus est aussi une erreur.
+4. L’évaluation doit être complète : chaque finalité et chaque durée de conservation écrites (dans chaque langue), aucun `TODO`, une évaluation selon l’article 17 pour chaque fournisseur à l’extérieur du Québec, une date de révision qui n’est pas dépassée.
+
+Marquez ce que les noms ne disent pas :
 
 ```prisma
 model Customer {
-  /// Allergies the customer chooses to tell us.
+  /// Les allergies que le client choisit de nous signaler.
   /// @personal
   allergies String?
   /// @not-personal
@@ -56,9 +60,9 @@ create table profiles (
 );
 ```
 
-## The assessment
+## L’évaluation
 
-`law25.config.mjs` (or `.js`, or `.json`). Every text is one string for every language, or `{ fr: "…", en: "…" }`; `check` makes sure each language is written. The [example](example/law25.config.mjs) is a complete one, for a fictional bakery's ordering app, and its reports are [in French](example/docs/privacy/efvp.fr.md) and [in English](example/docs/privacy/pia.en.md).
+`law25.config.mjs` (ou `.js`, ou `.json`). Chaque texte est une seule chaîne pour toutes les langues, ou `{ fr: "…", en: "…" }`; `check` s’assure que chaque langue est écrite. L’[exemple](example/law25.config.mjs) est complet, pour l’application de commandes d’une boulangerie fictive, et ses rapports sont [en français](example/docs/privacy/efvp.fr.md) et [en anglais](example/docs/privacy/pia.en.md).
 
 ```js
 /** @type {import("maisongr-law25").Assessment} */
@@ -85,59 +89,59 @@ export default {
   ],
   providers: [
     {
-      name: "Email provider", service: "Order emails", data: ["Email"],
-      location: "United States", outsideQuebec: true, safeguards: "Processing agreement",
+      name: "Fournisseur de courriels", service: { fr: "Courriels de commande", en: "Order emails" }, data: ["Courriel"],
+      location: { fr: "États-Unis", en: "United States" }, outsideQuebec: true, safeguards: { fr: "Entente de traitement", en: "Processing agreement" },
       transfer: { sensitivity: "…", purposes: "…", protection: "…", legalFramework: "…", conclusion: "…" },
     },
   ],
   risks: [
-    { stage: "retention", risk: "Inactive accounts stay forever", measure: "Deleted after three years", status: "planned", owner: "Dev", due: "2027-01-15" },
+    { stage: "retention", risk: { fr: "Les comptes inactifs restent indéfiniment", en: "Inactive accounts stay forever" }, measure: { fr: "Suppression après trois ans", en: "Deleted after three years" }, status: "planned", owner: "Dev", due: "2027-01-15" },
   ],
 };
 ```
 
-| Field | What it holds |
+| Champ | Ce qu’il contient |
 |---|---|
-| `languages` | `["fr", "en"]` (default), `["fr"]` or `["en"]` |
-| `organisation` | `name`, and `privacyOfficer` (`title`, `contact`): the person in charge of the protection of personal information (s. 3.1) |
-| `project` | `name`, `description`, `objectives` (why personal information is needed), `proportionality` (why it's no more than needed) |
-| `assessed`, `nextReview` | ISO dates; `check` fails once `nextReview` has passed |
-| `officerConsulted`, `portability` | When the person in charge was consulted, from the project's outset, and how a person gets their computerized information back in a structured, commonly used format (s. 3.3; optional) |
-| `roles`, `consultations` | Who took part, and who was consulted (optional) |
-| `data[]` | `name`, `fields` (`Model.field` or `table.column`), `whose`, `source` (`person`, `third-party`, `generated`, `public`), `purpose`, `retention`, `storedIn`, `access`, `sensitive` (why, when s. 12 applies) |
-| `providers[]` | `name`, `service`, `data` (item names), `location`, `outsideQuebec` (the rest of Canada counts, and so do subcontractors and where the data is reached from), `safeguards`, and `transfer` (the factors s. 17 names: `sensitivity`, `purposes`, `protection`, `legalFramework`, and a `conclusion` on adequate protection and the written agreement) |
+| `languages` | `["fr", "en"]` (par défaut), `["fr"]` ou `["en"]` |
+| `organisation` | `name`, et `privacyOfficer` (`title`, `contact`) : la personne responsable de la protection des renseignements personnels (art. 3.1) |
+| `project` | `name`, `description`, `objectives` (pourquoi des renseignements personnels sont nécessaires), `proportionality` (pourquoi on n’en recueille pas plus que nécessaire) |
+| `assessed`, `nextReview` | Dates ISO; `check` échoue une fois `nextReview` dépassée |
+| `officerConsulted`, `portability` | La date à laquelle la personne responsable a été consultée, dès le début du projet, et la façon dont une personne récupère ses renseignements informatisés dans un format technologique structuré et couramment utilisé (art. 3.3; facultatifs) |
+| `roles`, `consultations` | Qui a participé, et qui a été consulté (facultatifs) |
+| `data[]` | `name`, `fields` (`Model.field` ou `table.column`), `whose`, `source` (`person`, `third-party`, `generated`, `public`), `purpose`, `retention`, `storedIn`, `access`, `sensitive` (pourquoi, quand l’article 12 s’applique) |
+| `providers[]` | `name`, `service`, `data` (noms des renseignements), `location`, `outsideQuebec` (le reste du Canada compte, tout comme les sous-traitants et l’endroit d’où l’on accède aux données), `safeguards`, et `transfer` (les facteurs que nomme l’article 17 : `sensitivity`, `purposes`, `protection`, `legalFramework`, et une `conclusion` sur la protection adéquate et l’entente écrite) |
 | `risks[]` | `stage` (`collection`, `use`, `communication`, `retention`, `other`), `risk`, `measure`, `status` (`done`, `planned`, `to-confirm`), `owner`, `due` |
-| `approvals[]`, `updates[]` | Who approved it and when; what changed and when |
-| `notPersonal` | `{ "Post.authorName": "a pen name the user chooses to publish" }` |
+| `approvals[]`, `updates[]` | Qui l’a approuvée et quand; ce qui a changé et quand |
+| `notPersonal` | `{ "Post.authorName": "un pseudonyme que l’utilisateur choisit de publier" }` |
 
-With the package installed (`npm install --save-dev maisongr-law25`), the `@type` comment gives autocompletion and type checks in your editor; `npx` needs nothing installed.
+Avec le paquet installé (`npm install --save-dev maisongr-law25`), le commentaire `@type` donne l’autocomplétion et la vérification des types dans votre éditeur; `npx` n’exige rien d’installé.
 
-## The report
+## Le rapport
 
-`build` writes one Markdown file per language, the same every time for the same config, so it can be committed and reviewed as a diff:
+`build` écrit un fichier Markdown par langue, identique d’une fois à l’autre pour la même configuration, pour qu’on puisse le versionner et le relire comme un diff :
 
-1. The project: description, objectives, proportionality
-2. Roles and consultations
-3. Personal information: whose, where from, why, how long, where, who sees it, and the fields in the code
-4. Sensitive information (s. 12)
-5. Providers and communication outside Québec (s. 17), with the factors s. 17 names for each provider outside Québec
-6. Risks and measures, by stage: collection, use, communication, retention and destruction
-7. Action plan: the open measures, by due date
-8. Approval and history
+1. Le projet : description, objectifs, proportionnalité
+2. Rôles et consultations
+3. Renseignements personnels : de qui, d’où, pourquoi, combien de temps, où, qui y a accès, et les champs dans le code
+4. Renseignements sensibles (art. 12)
+5. Fournisseurs et communication à l’extérieur du Québec (art. 17), avec les facteurs que nomme l’article 17 pour chaque fournisseur à l’extérieur du Québec
+6. Risques et mesures, par étape : collecte, utilisation, communication, conservation et destruction
+7. Plan d’action : les mesures encore ouvertes, par échéance
+8. Approbation et historique
 
-The sections cover the points ss. 3.3, 12 and 17 name, and the topics the [Commission d'accès à l'information's guide](https://www.cai.gouv.qc.ca/commission-acces-information/guide-fiches-information) walks through. The wording is this package's own: it doesn't reproduce the Commission's template. The French is written for Québec, with its typography.
+Les sections couvrent les points que nomment les articles 3.3, 12 et 17, et les sujets que parcourt le [guide de la Commission d’accès à l’information](https://www.cai.gouv.qc.ca/commission-acces-information/guide-fiches-information). Le libellé est propre à ce paquet : il ne reproduit pas le modèle de la Commission. Le français est rédigé pour le Québec, avec sa typographie.
 
-## In CI
+## Dans la CI
 
 ```yaml
 - run: npx maisongr-law25 check
 ```
 
-A pull request that adds `users.phone` without saying why it's collected and how long it's kept fails, with the file and line of the new field.
+Une demande de fusion qui ajoute `users.phone` sans dire pourquoi on le recueille ni combien de temps on le garde échoue, avec le fichier et la ligne du nouveau champ.
 
-Options: `--config <file>`, `--prisma <path>`, `--sql <path>`, `--no-schema` (check the assessment alone), `--out <folder>` and `--lang fr|en` for `build`, `--json` for a machine-readable result. Exit codes: 0 done, 1 problems found, 2 a usage error.
+Options : `--config <fichier>`, `--prisma <chemin>`, `--sql <chemin>`, `--no-schema` (vérifier l’évaluation seule), `--out <dossier>` et `--lang fr|en` pour `build`, `--json` pour un résultat lisible par une machine. Codes de sortie : 0 terminé, 1 problèmes trouvés, 2 erreur d’utilisation.
 
-## In code
+## Dans le code
 
 ```js
 import { validate, render, parsePrisma, parseSql, looksPersonal } from "maisongr-law25";
@@ -146,33 +150,33 @@ const problems = validate(assessment, parsePrisma(schemaText), "2026-11-25");
 const markdown = render(assessment, "fr");
 ```
 
-## For AI agents
+## Pour les agents d’IA
 
-The package ships an [Agent Skill](skills/maisongr-law25/SKILL.md) and an [`llms.txt`](llms.txt). An agent that adds a column holding personal information can run `check`, then add the item, with its purpose and retention, for a person to confirm.
+Le paquet fournit une [Agent Skill](skills/maisongr-law25/SKILL.md) et un [`llms.txt`](llms.txt). Un agent qui ajoute une colonne contenant un renseignement personnel peut lancer `check`, puis ajouter le renseignement, avec sa finalité et sa durée de conservation, pour qu’une personne les confirme.
 
-## Limits
+## Limites
 
-- Personal fields are found by name and by marker. A free-text field (`notes`, `message`) can hold personal information under any name: mark it `@personal`.
-- It reads Prisma and SQL migrations. Drizzle, TypeORM, Mongoose and others aren't read yet: use `--no-schema`, and list `fields` by hand.
-- It checks that the assessment is complete and matches the schema, not that what it says is true or sufficient. That is the assessment's job, and the advisor's.
-- It doesn't decide whether an assessment is required, or whether it is enough.
-- It covers the privacy impact assessment of the private sector Act. Public bodies fall under a different Act (CQLR c. A-2.1), and other assessments (such as for communication for research purposes) aren't covered.
-- Law 25's other duties (the published policy, consent, the confidentiality incident register, the person in charge's contact on your site) are yours to meet.
-- Section numbers refer to CQLR c. P-39.1 as in force on the release date; check the current text on [LégisQuébec](https://www.legisquebec.gouv.qc.ca/en/document/cs/P-39.1).
+- Les champs personnels sont repérés par leur nom et par un marqueur. Un champ de texte libre (`notes`, `message`) peut contenir des renseignements personnels sous n’importe quel nom : marquez-le `@personal`.
+- Il lit Prisma et les migrations SQL. Drizzle, TypeORM, Mongoose et les autres ne sont pas encore lus : utilisez `--no-schema`, et listez les `fields` à la main.
+- Il vérifie que l’évaluation est complète et conforme au schéma, pas que ce qu’elle affirme est exact ou suffisant. C’est le rôle de l’évaluation elle-même, et de la personne qui la valide.
+- Il ne décide pas si une évaluation est requise, ni si elle suffit.
+- Il couvre l’évaluation de la loi sur le secteur privé. Les organismes publics relèvent d’une autre loi (RLRQ, c. A-2.1), et les autres évaluations (par exemple pour une communication à des fins de recherche) ne sont pas couvertes.
+- Les autres obligations de la Loi 25 (la politique publiée, le consentement, le registre des incidents de confidentialité, les coordonnées de la personne responsable sur votre site) restent à remplir de votre côté.
+- Les numéros d’articles renvoient à la RLRQ, c. P-39.1 en vigueur à la date de publication; vérifiez le texte actuel sur [LégisQuébec](https://www.legisquebec.gouv.qc.ca/fr/document/lc/P-39.1).
 
-## Requirements
+## Prérequis
 
-Node.js 20.9 or later, on Linux, macOS and Windows. No runtime dependencies. An ES module: from CommonJS, `require("maisongr-law25")` works on Node 22.12 and later; on Node 20, use `await import("maisongr-law25")`. The CLI works the same everywhere, in any project: it needs nothing installed beside it, whatever the project's language.
+Node.js 20.9 ou plus récent, sur Linux, macOS et Windows. Aucune dépendance à l’exécution. Un module ES : depuis CommonJS, `require("maisongr-law25")` fonctionne à partir de Node 22.12; sur Node 20, utilisez `await import("maisongr-law25")`. L’outil en ligne de commande fonctionne partout de la même façon, dans tout projet : il n’exige rien d’installé à côté, quel que soit le langage du projet.
 
-## More from Maison GR
+## Aussi chez Maison GR
 
-Open source from [Maison GR](https://www.maisongr.com), a software studio in Québec City:
+Du logiciel libre de [Maison GR](https://www.maisongr.com), un studio de logiciels de Québec :
 
-- [maisongr-sitemap](https://github.com/maison-gr/maisongr-sitemap): one sitemap, two readers. The XML search engines need, and a page in your site's own design for people.
-- [Maison GR Sitemap for WordPress](https://github.com/maison-gr/maisongr-sitemap-wordpress): the same sitemap for WordPress, in your theme's colours and type.
-- [maisongr-skills](https://github.com/maison-gr/maisongr-skills): one engineering standard for every AI coding agent: Claude Code, Codex, Cursor, Copilot, Gemini CLI.
-- [maisongr-typo](https://github.com/maison-gr/maisongr-typo): French typography, the Québec way, with a CI check.
+- [maisongr-sitemap](https://github.com/maison-gr/maisongr-sitemap) : un plan de site, deux lecteurs. Le XML dont les moteurs de recherche ont besoin, et une page aux couleurs de votre site pour les gens.
+- [Maison GR Sitemap pour WordPress](https://github.com/maison-gr/maisongr-sitemap-wordpress) : le même plan de site pour WordPress, aux couleurs et aux polices de votre thème.
+- [maisongr-skills](https://github.com/maison-gr/maisongr-skills) : une même norme d’ingénierie pour tous les agents de programmation par IA : Claude Code, Codex, Cursor, Copilot, Gemini CLI.
+- [maisongr-typo](https://github.com/maison-gr/maisongr-typo) : la typographie française à la québécoise, avec une vérification pour la CI.
 
-## License
+## Licence
 
-MIT, © Maison GR Inc. Not affiliated with or endorsed by the Commission d'accès à l'information.
+MIT, © Maison GR Inc. Ni affilié à la Commission d’accès à l’information ni approuvé par elle.
