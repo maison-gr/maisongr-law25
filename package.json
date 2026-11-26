@@ -1,6 +1,6 @@
 {
   "name": "maisongr-law25",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A Québec Law 25 privacy impact assessment kept next to the code: checked in CI against your schema (Prisma, Drizzle, TypeORM, Django, SQLAlchemy, Rails, Laravel, Entity Framework, JPA, GORM, SQL, OpenAPI…), written out in French and English.",
   "license": "MIT",
   "author": "Maison GR Inc. (https://www.maisongr.com)",

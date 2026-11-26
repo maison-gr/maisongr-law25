@@ -1,7 +1,7 @@
 // What `check` verifies: the assessment is complete (every required text written, in every language), consistent
 // (references point at things that exist), and accounts for every personal field the schema stores.
 
-import { looksPersonal } from "./personal.js";
+import { personalFields } from "./personal.js";
 import type { Field } from "./schema.js";
 import type { Assessment, Language, Text } from "./types.js";
 
@@ -132,9 +132,8 @@ export function validate(a: Assessment, fields: Field[] | null, today: string): 
       if (!known.has(ref)) warn(`notPersonal`, `"${ref}" is not in the schema`);
       else text(`notPersonal["${ref}"]`, a.notPersonal![ref]);
     }
-    for (const f of fields) {
-      const why = looksPersonal(f);
-      if (!why || listed.has(f.ref) || (a.notPersonal && f.ref in a.notPersonal)) continue;
+    for (const { field: f, why } of personalFields(fields)) {
+      if (listed.has(f.ref) || (a.notPersonal && f.ref in a.notPersonal)) continue;
       error(`${f.ref} (${f.file}:${f.line})`, `looks like ${why === "marked @personal" ? "personal information (marked @personal)" : why}: add it to an item's fields in data, or explain in notPersonal why it isn't personal`);
     }
   }

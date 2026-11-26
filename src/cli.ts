@@ -5,7 +5,7 @@
 // Exit codes: 0 done, 1 problems found (check) or refused (init over an existing config), 2 a usage error or a bug.
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, join, relative, resolve } from "node:path";
+import { basename, isAbsolute, join, relative, resolve } from "node:path";
 import { CONFIG_NAMES, describe, findConfig, findSchema, loadConfig } from "./load.js";
 import { STACKS, type Stack } from "./readers/index.js";
 import { starter } from "./init.js";
@@ -75,6 +75,11 @@ function parse(argv: string[]): Args {
   return args;
 }
 
+/** A path as the user would type it: relative inside the project, whole outside it. */
+const shown = (cwd: string, path: string) => {
+  const r = relative(cwd, path);
+  return r.startsWith("..") || isAbsolute(r) ? path : r;
+};
 const today = () => new Date().toISOString().slice(0, 10);
 const say = (args: Args, text: string) => { if (!args.json) process.stdout.write(`${text}\n`); };
 const version = () => (JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string }).version;
@@ -98,7 +103,7 @@ async function main(argv: string[]): Promise<number> {
     writeFileSync(target, starter(schema?.fields ?? [], today(), schemaNote));
     const count = schema ? schema.fields.length : 0;
     if (args.json) process.stdout.write(`${JSON.stringify({ ok: true, config: relative(cwd, target), schema: schema?.files ?? [], fields: count })}\n`);
-    say(args, `Wrote ${relative(cwd, target)}${schemaNote ? `, started from ${schemaNote}` : " (no schema found: pass --schema <path>)"}.`);
+    say(args, `Wrote ${shown(cwd, target)}${schemaNote ? `, started from ${schemaNote}` : " (no schema found: pass --schema <path>)"}.`);
     say(args, "Replace each TODO, then run: npx maisongr-law25 check");
     return 0;
   }

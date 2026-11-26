@@ -6,6 +6,18 @@ All notable changes to `maisongr-law25`. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-11-25
+
+### Fixed
+
+- SQL migrations: a statement written in a comment (`-- Rollback: DROP TABLE notes;`, `/* … */`) is no longer run. In Resistaa's migrations it made four tables vanish, `email_log` among them.
+- A column named like a keyword (`key text primary key`, `index`, `unique`, `check`) is read; a MySQL index added with `ALTER TABLE … ADD KEY idx (id)` no longer becomes a column.
+
+### Changed
+
+- Personal fields are found better, from three real projects: free text on a person's rows (a journal, a message, a cover letter, notes), a role's name (`author_name`, `changedByName`), mood, password, résumé, LinkedIn and GitHub profiles, nationality and immigration status. Less noise: a type, an id, a date or a preference about the information (`email_type`, `scheduled_email_id`, `isEmailVerified`, `email_opt_out`) is no longer flagged, and a device fingerprint is no longer called biometric.
+- `init` asks why sensitive information is sensitive (s. 12): `check` waits for the answer.
+- `init` prints the whole path of a config written outside the project.
 ## [1.0.0] - 2026-11-25
 
 ### Added

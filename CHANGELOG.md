@@ -6,6 +6,18 @@ Toutes les modifications notables de `maisongr-law25`. Le format suit [Keep a Ch
 
 ## [Non publié]
 
+## [1.0.1] - 2026-11-25
+
+### Corrigé
+
+- Les migrations SQL : une instruction écrite dans un commentaire (`-- Rollback: DROP TABLE notes;`, `/* … */`) n’est plus exécutée. Dans les migrations de Resistaa, elle faisait disparaître quatre tables, dont `email_log`.
+- Une colonne nommée comme un mot-clé (`key text primary key`, `index`, `unique`, `check`) est lue; un index MySQL ajouté par `ALTER TABLE … ADD KEY idx (id)` ne devient plus une colonne.
+
+### Modifié
+
+- Les champs personnels sont mieux repérés, d’après trois vrais projets : le texte libre sur les lignes d’une personne (un journal, un message, une lettre de présentation, des notes), le nom d’un rôle (`author_name`, `changedByName`), l’humeur, le mot de passe, le CV, les profils LinkedIn et GitHub, la nationalité et le statut d’immigration. Moins de bruit : un type, un identifiant, une date ou une préférence à propos d’un renseignement (`email_type`, `scheduled_email_id`, `isEmailVerified`, `email_opt_out`) n’est plus signalé, et une empreinte d’appareil n’est plus appelée biométrique.
+- `init` demande pourquoi un renseignement sensible l’est (art. 12) : `check` attend la réponse.
+- `init` affiche le chemin complet d’une configuration écrite hors du projet.
 ## [1.0.0] - 2026-11-25
 
 ### Ajouté

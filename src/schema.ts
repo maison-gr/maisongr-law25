@@ -59,17 +59,21 @@ export function parseSql(files: { file: string; source: string }[]): Field[] {
   // Identifiers quoted the PostgreSQL ("x"), MySQL (`x`) or SQL Server ([x]) way; the default schema left out.
   const name = (raw: string) => unquote(raw).replace(/^(public|dbo)\./i, "");
   for (const { file, source } of files) {
-    const lineAt = (index: number) => source.slice(0, index).split("\n").length;
+    // Statements are found in the text with its comments blanked, so "-- Rollback: DROP TABLE notes;" drops nothing;
+    // offsets are the same in both, and @personal markers are still read from the source itself.
+    const code = withoutComments(source);
+    const lines = lineStarts(source);
+    const lineAt = (index: number) => lineOf(lines, index);
     const create = /create\s+(?:(?:global\s+|local\s+)?(?:temporary|temp|unlogged)\s+)?table\s+(?:if\s+not\s+exists\s+)?([\w."`\[\]]+)\s*\(/gi;
-    for (let m = create.exec(source); m; m = create.exec(source)) {
+    for (let m = create.exec(code); m; m = create.exec(code)) {
       const table = name(m[1]!);
       const start = m.index + m[0].length;
       const end = closingParen(source, start);
       let cursor = start;
       for (const part of splitTopLevel(source.slice(start, end))) {
-        const clean = part.replace(/--[^\n]*/g, "").trim();
+        const clean = withoutComments(part).trim();
         const col = clean.match(/^("[^"]+"|`[^`]+`|\[[^\]]+\]|\w+)\s+(\w+)/);
-        if (col && !/^(constraint|primary|foreign|unique|check|exclude|like|key|index|fulltext|spatial|period)\b/i.test(clean)) {
+        if (col && !isIndexOrConstraint(clean)) {
           const column = unquote(col[1]!);
           const offset = source.indexOf(col[1]!, cursor);
           cursor = offset === -1 ? cursor : offset + col[1]!.length;
@@ -81,27 +85,87 @@ export function parseSql(files: { file: string; source: string }[]): Field[] {
     // The pattern finds "ALTER TABLE name" only; its actions run to the next ";", found with indexOf. No pattern spans
     // the actions, so a long run of spaces with no ";" can't make one backtrack (CodeQL js/polynomial-redos).
     const alter = /alter\s+table\s+(?:only\s+)?(?:if\s+exists\s+)?([\w."`\[\]]+)/gi;
-    for (const m of source.matchAll(alter)) {
+    for (const m of code.matchAll(alter)) {
       const from = (m.index ?? 0) + m[0].length;
-      const end = source.indexOf(";", from);
+      const end = code.indexOf(";", from);
       if (end === -1) break;
       const table = name(m[1]!);
       for (const action of splitTopLevel(source.slice(from, end))) {
-        const add = action.match(/^\s*add\s+(?:column\s+)?(?:if\s+not\s+exists\s+)?("[^"]+"|`[^`]+`|\[[^\]]+\]|\w+)\s+(\w+)/i);
-        if (add && !/^\s*add\s+(constraint|primary|foreign|unique|check)\b/i.test(action)) {
-          const column = unquote(add[1]!);
-          byRef.set(`${table}.${column}`, { ref: `${table}.${column}`, model: table, name: column, type: add[2]!.toLowerCase(), marked: marker(action), file, line: lineAt(m.index ?? 0) });
+        const clean = withoutComments(action).trim();
+        const add = clean.match(/^add\s+(?:column\s+)?(?:if\s+not\s+exists\s+)?("[^"]+"|`[^`]+`|\[[^\]]+\]|\w+)\s+(\w+)/i);
+        const column = clean.replace(/^add\s+(?:column\s+)?(?:if\s+not\s+exists\s+)?/i, "");
+        // "ADD COLUMN key text" is a column; "ADD KEY idx (id)" and "ADD CONSTRAINT …" are not.
+        if (add && (/^add\s+column\b/i.test(clean) || !isIndexOrConstraint(column))) {
+          const col = unquote(add[1]!);
+          byRef.set(`${table}.${col}`, { ref: `${table}.${col}`, model: table, name: col, type: add[2]!.toLowerCase(), marked: marker(action), file, line: lineAt(m.index ?? 0) });
         }
-        const drop = action.match(/^\s*drop\s+(?:column\s+)?(?:if\s+exists\s+)?("[^"]+"|`[^`]+`|\[[^\]]+\]|\w+)/i);
-        if (drop && !/^\s*drop\s+(constraint|default|not)\b/i.test(action)) byRef.delete(`${table}.${unquote(drop[1]!)}`);
+        const drop = clean.match(/^drop\s+(?:column\s+)?(?:if\s+exists\s+)?("[^"]+"|`[^`]+`|\[[^\]]+\]|\w+)/i);
+        if (drop && !/^drop\s+(constraint|default|not|index|key|primary|foreign)\b/i.test(clean)) byRef.delete(`${table}.${unquote(drop[1]!)}`);
       }
     }
-    for (const m of source.matchAll(/drop\s+table\s+(?:if\s+exists\s+)?([\w."`\[\]]+)/gi)) {
+    for (const m of code.matchAll(/drop\s+table\s+(?:if\s+exists\s+)?([\w."`\[\]]+)/gi)) {
       const table = name(m[1]!);
       for (const ref of [...byRef.keys()]) if (ref.startsWith(`${table}.`)) byRef.delete(ref);
     }
   }
   return [...byRef.values()];
+}
+
+/**
+ * Whether a line of a table body (or what follows ADD) is an index or a constraint rather than a column. A keyword
+ * opens one only in its own shape: "PRIMARY KEY (id)", "KEY idx (email)", "UNIQUE (email)", "CHECK (x > 0)",
+ * "INDEX ix USING BTREE (id)". "key text primary key" is a column called key.
+ */
+function isIndexOrConstraint(clean: string): boolean {
+  const words = clean.match(/^(\w+)\s*(.*)$/s);
+  if (!words) return false;
+  const first = words[1]!.toLowerCase();
+  const rest = words[2]!;
+  if (["constraint", "foreign", "exclude", "period", "like"].includes(first)) return true;
+  if (!["primary", "unique", "check", "key", "index", "fulltext", "spatial"].includes(first)) return false;
+  // What comes next: "(" (UNIQUE (email)), a second keyword (PRIMARY KEY, UNIQUE KEY, FULLTEXT INDEX), or a name
+  // followed by "(" or USING (KEY idx_email (email)).
+  if (!rest || rest.startsWith("(")) return true;
+  const next = rest.match(/^("[^"]+"|`[^`]+`|\[[^\]]+\]|\w+)\s*(.*)$/s);
+  if (!next) return true;
+  if (/^(key|index)$/i.test(next[1]!)) return true;
+  const after = next[2]!;
+  return after.startsWith("(") || /^using\b/i.test(after);
+}
+
+/** The text with its comments (-- to the line's end, /* … *\/) turned to spaces, line breaks kept: offsets don't move. */
+function withoutComments(s: string): string {
+  let out = "";
+  let last = 0;
+  for (let i = 0; i < s.length; i++) {
+    const c = s[i];
+    if (c === "'" || c === '"') { const j = s.indexOf(c, i + 1); i = j === -1 ? s.length : j; continue; }
+    let end = -1;
+    if (c === "-" && s[i + 1] === "-") { const j = s.indexOf("\n", i); end = j === -1 ? s.length : j; }
+    else if (c === "/" && s[i + 1] === "*") { const j = s.indexOf("*/", i + 2); end = j === -1 ? s.length : j + 2; }
+    if (end === -1) continue;
+    out += s.slice(last, i) + s.slice(i, end).replace(/[^\n]/g, " ");
+    last = end;
+    i = end - 1;
+  }
+  return out + s.slice(last);
+}
+
+function lineStarts(s: string): number[] {
+  const starts = [0];
+  for (let i = s.indexOf("\n"); i !== -1; i = s.indexOf("\n", i + 1)) starts.push(i + 1);
+  return starts;
+}
+
+function lineOf(starts: number[], index: number): number {
+  let lo = 0;
+  let hi = starts.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (starts[mid]! <= index) lo = mid;
+    else hi = mid - 1;
+  }
+  return lo + 1;
 }
 
 /** "x", `x` or [x] → x (each part of schema.table). */
@@ -115,6 +179,7 @@ function closingParen(s: string, from: number): number {
     const c = s[i];
     if (c === "'") { const j = s.indexOf("'", i + 1); i = j === -1 ? s.length : j; continue; }
     if (c === "-" && s[i + 1] === "-") { const j = s.indexOf("\n", i); i = j === -1 ? s.length : j; continue; }
+    if (c === "/" && s[i + 1] === "*") { const j = s.indexOf("*/", i + 2); i = j === -1 ? s.length : j + 1; continue; }
     if (c === "(") depth++;
     else if (c === ")" && --depth === 0) return i;
   }
@@ -130,6 +195,7 @@ function splitTopLevel(s: string): string[] {
     const c = s[i];
     if (c === "'") { const j = s.indexOf("'", i + 1); i = j === -1 ? s.length : j; continue; }
     if (c === "-" && s[i + 1] === "-") { const j = s.indexOf("\n", i); i = j === -1 ? s.length : j; continue; }
+    if (c === "/" && s[i + 1] === "*") { const j = s.indexOf("*/", i + 2); i = j === -1 ? s.length : j + 1; continue; }
     if (c === "(") depth++;
     else if (c === ")") depth--;
     else if (c === "," && depth === 0) {
