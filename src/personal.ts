@@ -52,9 +52,9 @@ const ROLE = new Set(["author", "reviewer", "owner", "sender", "recipient", "con
 const ABOUT = new Set(["id", "ids", "uuid", "type", "types", "kind", "status", "template", "count", "size", "domain", "provider", "at", "enabled", "verified", "sent", "token", "opened", "clicked", "bounced"]);
 
 /** Free text, by its last word. On rows about a person, it can hold anything about them. */
-const FREE_TEXT = new Set(["content", "message", "body", "text", "notes", "note", "comment", "comments", "description", "input", "response", "answer", "answers", "feedback", "bio", "about", "entry", "story", "reflection", "intention", "other", "letter"]);
+const FREE_TEXT = new Set(["content", "message", "body", "text", "notes", "note", "comment", "comments", "description", "input", "response", "answer", "answers", "feedback", "bio", "about", "entry", "story", "reflection", "intention", "other", "letter", "messages", "transcript", "transcripts", "conversation", "conversations", "debrief", "chat"]);
 /** Last words that are free text whatever comes before: employerNotes, coverLetter, negative_feedback, admin_note. */
-const ALWAYS_FREE = new Set(["notes", "note", "letter", "message", "comment", "comments", "feedback", "bio", "response", "answer", "answers", "reflection", "story"]);
+const ALWAYS_FREE = new Set(["notes", "note", "letter", "message", "messages", "transcript", "transcripts", "conversation", "debrief", "comment", "comments", "feedback", "bio", "response", "answer", "answers", "reflection", "story"]);
 /** A field that points to a person: the rows of its table belong to that person. */
 const PERSON_LINK = /^(user|author|owner|profile|member|customer|patient|account|client|person|sender|requester|reporter|candidate|applicant)(_?id|Id)$/;
 /** Tables that are themselves exchanges between people or about one: their free text is about or by a person. */

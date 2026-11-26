@@ -6,6 +6,13 @@ Toutes les modifications notables de `maisongr-law25`. Le format suit [Keep a Ch
 
 ## [Non publié]
 
+## [1.0.2] - 2026-11-26
+
+### Corrigé
+
+- Un schéma complet dans un fichier (`supabase/schema.sql`, `db/structure.sql`, `db/schema.sql`) est lu, avant les migrations qui le modifient. Dans Rehearse, les tables `profiles` et `sessions` n’étaient pas vues.
+- Une conversation est du texte libre : `messages`, `transcript`, `conversation`, `debrief`.
+
 ## [1.0.1] - 2026-11-25
 
 ### Corrigé

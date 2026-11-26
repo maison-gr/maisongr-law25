@@ -197,6 +197,8 @@ describe("looksPersonal", () => {
     expect(g("InterviewScorecard", "notes")).toBe(FREE);
     expect(g("Issue", "internalNotes", ["reporterId"])).toBe(FREE);
     expect(g("Job", "description")).toBeNull();
+    // Rehearse's sessions: the conversation itself, and what is written about it.
+    for (const name of ["messages", "transcript", "conversation", "debrief", "chat_messages"]) expect(g("sessions", name, ["user_id"]), name).toBe(FREE);
     // A compound name is free text only when its last word always is: "licensing body" is an organisation,
     // "acquisition content" a campaign parameter, "company description" not about the person.
     for (const [model, name] of [["partner_applications", "licensing_body"], ["profiles", "acquisition_content"], ["Profile", "companyDescription"], ["Application", "jobSnapshot.description"]]) {
