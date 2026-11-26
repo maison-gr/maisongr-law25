@@ -6,6 +6,13 @@ All notable changes to `maisongr-law25`. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-26
+
+### Fixed
+
+- A whole schema in one file (`supabase/schema.sql`, `db/structure.sql`, `db/schema.sql`) is read, before the migrations that change it. In Rehearse, the `profiles` and `sessions` tables went unseen.
+- A conversation is free text: `messages`, `transcript`, `conversation`, `debrief`.
+
 ## [1.0.1] - 2026-11-25
 
 ### Fixed

@@ -34,6 +34,8 @@ export interface SchemaSource {
 
 const PRISMA_PLACES = ["prisma/schema.prisma", "schema.prisma", "prisma/schema"];
 const SQL_PLACES = ["supabase/migrations", "migrations", "db/migrations", "database/migrations", "sql"];
+/** A whole schema in one file (Supabase's schema.sql, a pg_dump, Rails' structure.sql): read before the migrations, which add to it. */
+const SCHEMA_FILES = ["supabase/schema.sql", "db/structure.sql", "db/schema.sql", "database/schema.sql", "sql/schema.sql", "schema.sql"];
 /** Stacks whose code describes the data: found anywhere in the project, read together. */
 const CODE = READERS.filter((r) => !["prisma", "sql", "openapi"].includes(r.stack));
 
@@ -76,8 +78,13 @@ export function findSchema(cwd: string, given: SchemaGiven = {}): SchemaSource |
   }
   const code = read(cwd, sourceFiles(cwd, new Set(CODE.flatMap((r) => r.exts))), CODE);
   if (code.fields.length) return source(code);
+  const schemaFile = SCHEMA_FILES.find((p) => existsSync(join(cwd, p)));
   const sql = SQL_PLACES.find((p) => existsSync(join(cwd, p)) && walk(join(cwd, p), ".sql").length);
-  if (sql) return sqlAt(cwd, sql);
+  if (schemaFile || sql) {
+    const first = schemaFile ? [resolve(cwd, schemaFile)] : [];
+    const migrations = sql ? walk(resolve(cwd, sql), ".sql").sort().filter((f) => !first.includes(f)) : [];
+    return sqlFiles(cwd, [...first, ...migrations]);
+  }
   const api = read(cwd, sourceFiles(cwd, new Set([".json", ".yaml", ".yml"])).filter((p) => /(^|[\\/])(openapi|swagger)[^\\/]*\.(json|ya?ml)$|\.schema\.json$/i.test(p)), [readerOf("openapi")]);
   return api.fields.length ? source(api) : null;
 }
@@ -87,6 +94,11 @@ function sqlAt(cwd: string, sql: string): SchemaSource {
   // Migrations run in file name order (timestamps first), which is the order a column was added, then dropped.
   const files = (statSync(full).isDirectory() ? walk(full, ".sql") : [full]).sort();
   if (!files.length) throw new Error(`no .sql file in ${sql}`);
+  return sqlFiles(cwd, files);
+}
+
+/** SQL files read in the order given: a schema first, then the migrations that change it. */
+function sqlFiles(cwd: string, files: string[]): SchemaSource {
   const fields = parseSql(files.map((f) => ({ file: rel(cwd, f), source: readFileSync(f, "utf8") })));
   return { kind: "sql", stacks: ["sql"], files: files.map((f) => rel(cwd, f)), fields };
 }

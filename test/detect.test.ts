@@ -59,6 +59,19 @@ describe("finding the schema", () => {
     expect(describeSchema(s)).toBe("the Drizzle tables, the Django models and the Rails schema (3 files)");
   });
 
+  // Rehearse (25 Nov 2026): its profiles and sessions tables are in supabase/schema.sql, the migrations only add to them.
+  it("reads a schema file next to the migrations first, then the migrations", () => {
+    const root = project({
+      "supabase/schema.sql": "create table public.profiles (id uuid primary key, email text, full_name text);\ncreate table public.sessions (id uuid, user_id uuid, messages jsonb);",
+      "supabase/migrations/001.sql": "alter table public.profiles add column if not exists canonical_email text;",
+    });
+    const s = findSchema(root)!;
+    expect(s.files).toEqual(["supabase/schema.sql", "supabase/migrations/001.sql"]);
+    expect(s.fields.map((f) => f.ref)).toEqual(["profiles.id", "profiles.email", "profiles.full_name", "sessions.id", "sessions.user_id", "sessions.messages", "profiles.canonical_email"]);
+    // A schema dump alone (db/structure.sql, Rails) is read too.
+    expect(findSchema(project({ "db/structure.sql": "CREATE TABLE public.users (id bigint, email character varying);" }))).toMatchObject({ kind: "sql", files: ["db/structure.sql"] });
+  });
+
   it("falls back to SQL migrations, then to an OpenAPI file", () => {
     expect(findSchema(project({ "supabase/migrations/001.sql": "create table t (email text);" }))).toMatchObject({ kind: "sql" });
     const api = project({ "docs/openapi.yaml": "openapi: 3.1.0\ncomponents:\n  schemas:\n    Lead:\n      properties:\n        phone:\n          type: string\n" });
