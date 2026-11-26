@@ -10,7 +10,7 @@
 ![Runtime dependencies: 0](https://img.shields.io/badge/runtime_dependencies-0-1b1a17)
 ![Node 20.9+](https://img.shields.io/badge/node-%E2%89%A520.9-1b1a17)
 
-![On a navy ledger: on the left, CI refusing a new Customer.phone field with no stated purpose or retention; on the right, the assessment filed in French, stamped approved.](.github/assets/hero.png)
+![Maison GR open source, 04: maisongr-law25. Your Law 25 assessment, next to the code. Next to it, init, build and check: the config written from the Prisma schema, the report in French and English, then a new Customer.birthday field flagged.](.github/assets/hero.jpg)
 
 ```sh
 npx maisongr-law25 init     # law25.config.mjs, started from your schema (Prisma, Drizzle, Django, Rails, Entity Framework, JPA, GORM, SQL…)

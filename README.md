@@ -10,7 +10,7 @@
 ![Dépendances à l’exécution : 0](https://img.shields.io/badge/d%C3%A9pendances-0-0b1b33)
 ![Node 20.9+](https://img.shields.io/badge/node-%E2%89%A520.9-0b1b33)
 
-![Sur un registre bleu marine : à gauche, la CI qui refuse un nouveau champ Customer.phone sans finalité ni durée de conservation; à droite, l’évaluation classée en français, estampillée « approuvée ».](.github/assets/hero.png)
+![Logiciels libres Maison GR, 04 : maisongr-law25. Votre évaluation Loi 25, à côté du code. À côté, init, build et check : la configuration écrite à partir du schéma Prisma, le rapport en français et en anglais, puis un nouveau champ Customer.birthday signalé.](.github/assets/hero.jpg)
 
 ```sh
 npx maisongr-law25 init     # law25.config.mjs, amorcé à partir de votre schéma (Prisma, Drizzle, Django, Rails, Entity Framework, JPA, GORM, SQL…)
