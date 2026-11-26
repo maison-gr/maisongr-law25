@@ -6,6 +6,15 @@ All notable changes to `maisongr-law25`. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-11-26
+
+### Added
+
+- A GitHub Action (`uses: maison-gr/maisongr-law25@v1.0.3`): each problem shows up in the pull request, a personal field left out on its line in the schema.
+- A pre-commit hook, `maisongr-law25`.
+- A container image, `ghcr.io/maison-gr/maisongr-law25`, for linux/amd64 and linux/arm64.
+- `--github`: the result of `check` as GitHub Actions annotations.
+
 ## [1.0.2] - 2026-11-26
 
 ### Fixed

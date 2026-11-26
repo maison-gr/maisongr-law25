@@ -30,6 +30,12 @@ try {
   assert.equal(todo.status, 1);
   assert.match(todo.stdout, /✗ organisation\.name: is still to write/);
   assert.match(todo.stdout, /problems in law25\.config\.mjs \(checked against the Prisma schema \(prisma\/schema\.prisma\), 5 fields\)/);
+  // GitHub Actions annotations: on the config, or on the schema's line for a field the assessment leaves out.
+  writeFileSync(join(prisma, "prisma", "schema.prisma"), "model User {\n  id String @id\n  email String\n  name String?\n  phone String\n}\n");
+  const github = run(prisma, "check", "--github");
+  assert.equal(github.status, 1, github.stderr);
+  assert.match(github.stdout, /^::error file=law25\.config\.mjs,title=maisongr-law25::organisation\.name: is still to write/m);
+  assert.match(github.stdout, /^::error file=prisma\/schema\.prisma,line=5,title=maisongr-law25::User\.phone/m);
   assert.equal(run(prisma, "build").status, 1, "build refuses an incomplete assessment");
   assert.equal(existsSync(join(prisma, "docs")), false);
 

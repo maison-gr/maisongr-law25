@@ -14,6 +14,8 @@ The project describes its personal information in `law25.config.mjs`. `check` co
 npx maisongr-law25 check --json
 ```
 
+In a GitHub workflow: `uses: maison-gr/maisongr-law25@v1.0.3` (problems show on the pull request); pre-commit: hook `maisongr-law25`; without Node.js: `docker run --rm -v "$PWD:/work" ghcr.io/maison-gr/maisongr-law25 check`.
+
 It prints `{ ok, config, schema, fields, problems: [{ level, where, message }] }` and exits 1 when an error is left.
 
 For each `looks like …` error on a field:

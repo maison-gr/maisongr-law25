@@ -164,7 +164,36 @@ The sections cover the points ss. 3.3, 12 and 17 name, and the topics the [Commi
 
 A pull request that adds `users.phone` without saying why it's collected and how long it's kept fails, with the file and line of the new field.
 
-Options: `--config <file>`, `--schema <path>` (repeatable) and `--stack <name>`, `--prisma <path>`, `--sql <path>`, `--no-schema` (check the assessment alone), `--out <folder>` and `--lang fr|en` for `build`, `--json` for a machine-readable result. Exit codes: 0 done, 1 problems found, 2 a usage error.
+Or, with no script to write:
+
+**GitHub Action.** Each problem shows up in the pull request: a field left out on its line in the schema, the rest on the config.
+
+```yaml
+- uses: actions/checkout@v5
+- uses: maison-gr/maisongr-law25@v1.0.3
+  # with: { working-directory: apps/api, schema: db/schema.ts, stack: drizzle, command: build }
+```
+
+The action runs the npm version it was tagged with (`version` to choose another) and needs Node.js 20.9+ on the runner, which GitHub's runners have. Elsewhere, `npx maisongr-law25 check --github` prints the same annotations.
+
+**pre-commit.** In `.pre-commit-config.yaml`; the hook reads the whole project, so it runs on every commit:
+
+```yaml
+repos:
+  - repo: https://github.com/maison-gr/maisongr-law25
+    rev: v1.0.3
+    hooks:
+      - id: maisongr-law25
+```
+
+**Docker,** for any CI or a machine without Node.js (linux/amd64 and linux/arm64):
+
+```sh
+docker run --rm -v "$PWD:/work" ghcr.io/maison-gr/maisongr-law25 check
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" ghcr.io/maison-gr/maisongr-law25 build
+```
+
+Options: `--config <file>`, `--schema <path>` (repeatable) and `--stack <name>`, `--prisma <path>`, `--sql <path>`, `--no-schema` (check the assessment alone), `--out <folder>` and `--lang fr|en` for `build`, `--json` for a machine-readable result, `--github` for GitHub Actions annotations. Exit codes: 0 done, 1 problems found, 2 a usage error.
 
 ## In code
 

@@ -10,7 +10,7 @@ import { CONFIG_NAMES, describe, findConfig, findSchema, loadConfig } from "./lo
 import { STACKS, type Stack } from "./readers/index.js";
 import { starter } from "./init.js";
 import { render } from "./render.js";
-import { languagesOf, validate } from "./validate.js";
+import { languagesOf, validate, type Problem } from "./validate.js";
 import type { Language } from "./types.js";
 
 const HELP = `maisongr-law25: a Québec Law 25 privacy impact assessment, kept next to the code.
@@ -31,6 +31,7 @@ Options
   --out <folder>      build: where the report goes (default docs/privacy)
   --lang fr|en        build: one language only
   --json              print the result as JSON
+  --github            check: report as GitHub Actions annotations, on the config or the schema's line
   --version, --help
 
 The report is not legal advice; have it reviewed by a qualified advisor.
@@ -38,12 +39,12 @@ The report is not legal advice; have it reviewed by a qualified advisor.
 
 class Usage extends Error {}
 
-interface Args { command: "init" | "check" | "build"; config?: string; prisma?: string; sql?: string; schema: string[]; stack?: Stack; noSchema: boolean; out: string; lang?: Language; json: boolean }
+interface Args { command: "init" | "check" | "build"; config?: string; prisma?: string; sql?: string; schema: string[]; stack?: Stack; noSchema: boolean; out: string; lang?: Language; json: boolean; github: boolean }
 
 function parse(argv: string[]): Args {
   const [command, ...rest] = argv;
   if (command !== "init" && command !== "check" && command !== "build") throw new Usage(command ? `unknown command "${command}"` : "say init, check or build");
-  const args: Args = { command, schema: [], noSchema: false, out: "docs/privacy", json: false };
+  const args: Args = { command, schema: [], noSchema: false, out: "docs/privacy", json: false, github: false };
   for (let i = 0; i < rest.length; i++) {
     const a = rest[i]!;
     const value = () => {
@@ -69,6 +70,7 @@ function parse(argv: string[]): Args {
         args.lang = v; break;
       }
       case "--json": args.json = true; break;
+      case "--github": args.github = true; break;
       default: throw new Usage(`unknown option ${a}`);
     }
   }
@@ -80,6 +82,18 @@ const shown = (cwd: string, path: string) => {
   const r = relative(cwd, path);
   return r.startsWith("..") || isAbsolute(r) ? path : r;
 };
+/**
+ * A GitHub Actions workflow command for one problem: on the schema's line when the problem names one
+ * ("User.email (prisma/schema.prisma:14)"), on the config file otherwise.
+ */
+function annotation(config: string, p: Problem): string {
+  const data = (s: string) => s.replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A");
+  const property = (s: string) => data(s).replace(/:/g, "%3A").replace(/,/g, "%2C");
+  const at = /\(([^()]+):(\d+)\)$/.exec(p.where);
+  const place = at ? `file=${property(at[1]!.replace(/\\/g, "/"))},line=${at[2]}` : `file=${property(config.replace(/\\/g, "/"))}`;
+  return `::${p.level === "error" ? "error" : "warning"} ${place},title=maisongr-law25::${data(`${p.where}: ${p.message}`)}\n`;
+}
+
 const today = () => new Date().toISOString().slice(0, 10);
 const say = (args: Args, text: string) => { if (!args.json) process.stdout.write(`${text}\n`); };
 const version = () => (JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string }).version;
@@ -118,7 +132,7 @@ async function main(argv: string[]): Promise<number> {
     if (args.json) {
       process.stdout.write(`${JSON.stringify({ ok: !errors.length, config: relative(cwd, configPath), schema: schema?.files ?? null, fields: schema?.fields.length ?? null, problems }, null, 2)}\n`);
     } else {
-      for (const p of problems) process.stdout.write(`${p.level === "error" ? "✗" : "!"} ${p.where}: ${p.message}\n`);
+      for (const p of problems) process.stdout.write(args.github ? annotation(relative(cwd, configPath), p) : `${p.level === "error" ? "✗" : "!"} ${p.where}: ${p.message}\n`);
       const about = schema ? `against ${schemaNote}, ${schema.fields.length} fields` : "without a schema";
       process.stdout.write(errors.length
         ? `${errors.length} problem${errors.length === 1 ? "" : "s"} in ${basename(configPath)} (checked ${about}).\n`

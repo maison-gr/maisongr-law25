@@ -61,5 +61,74 @@ jobs:
       - run: npm ci
       # npm quietly rewrites a package.json it finds invalid when publishing (it once dropped the CLI's bin). Fail instead.
       - run: npm pkg fix && git diff --exit-code package.json
-      # prepack builds dist; the listing shows exactly what npm would publish.
+      # prepare builds dist; the listing shows exactly what npm would publish.
       - run: npm pack --dry-run
+
+  # The three ways to run it without writing code: the GitHub Action (action.yml), the pre-commit hook
+  # (.pre-commit-hooks.yaml) and the container image (Dockerfile). Each passes on the example, which is complete,
+  # and fails on a copy whose schema gained a personal field the assessment doesn't account for.
+  action:
+    name: GitHub Action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      # The package as npm would serve it, since this commit's version isn't on npm yet.
+      - id: pack
+        run: echo "tgz=$GITHUB_WORKSPACE/$(npm pack --silent | tail -n 1)" >> "$GITHUB_OUTPUT"
+      - run: |
+          cp -r example "$RUNNER_TEMP/broken"
+          printf 'model Contact {\n  id String @id\n  phone String\n}\n' >> "$RUNNER_TEMP/broken/prisma/schema.prisma"
+      - uses: ./
+        with:
+          working-directory: example
+          version: ${{ steps.pack.outputs.tgz }}
+      - id: broken
+        uses: ./
+        continue-on-error: true
+        with:
+          working-directory: ${{ runner.temp }}/broken
+          version: ${{ steps.pack.outputs.tgz }}
+      - run: test "${{ steps.broken.outcome }}" = failure
+
+  pre-commit:
+    name: pre-commit hook
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: |
+          set -euo pipefail
+          site="$RUNNER_TEMP/site"
+          cp -r example "$site" && cd "$site" && git init -q && git add .
+          pipx run pre-commit==4.7.0 try-repo "$GITHUB_WORKSPACE" maisongr-law25 --all-files
+          printf 'model Contact {\n  id String @id\n  phone String\n}\n' >> prisma/schema.prisma
+          git add .
+          if pipx run pre-commit==4.7.0 try-repo "$GITHUB_WORKSPACE" maisongr-law25 --all-files; then
+            echo "::error::the hook passed with a personal field left out"; exit 1
+          fi
+
+  docker:
+    name: Container image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: docker build -t maisongr-law25 .
+      - run: |
+          set -euo pipefail
+          docker run --rm maisongr-law25 --version
+          cp -r example site && rm -rf site/docs
+          docker run --rm -v "$PWD/site:/work" maisongr-law25 check
+          docker run --rm --user "$(id -u):$(id -g)" -v "$PWD/site:/work" maisongr-law25 build
+          test -s site/docs/privacy/efvp.fr.md && test -s site/docs/privacy/pia.en.md
+          printf 'model Contact {\n  id String @id\n  phone String\n}\n' >> site/prisma/schema.prisma
+          set +e; docker run --rm -v "$PWD/site:/work" maisongr-law25 check; status=$?; set -e
+          test "$status" = 1

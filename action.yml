@@ -1,0 +1,64 @@
+name: maisongr-law25
+description: Check a Québec Law 25 privacy impact assessment (EFVP) against the code's schema, in every pull request.
+author: Maison GR Inc.
+branding:
+  icon: shield
+  color: blue
+
+# Runs the maisongr-law25 CLI from npm, at the version this action was tagged with (or `version`). `check` fails when
+# the assessment is incomplete or leaves out a personal field of the schema, each problem shown as an annotation on
+# the config or on the schema's line. Needs Node.js 20.9+ on the runner (GitHub's runners have it).
+
+inputs:
+  command:
+    description: "`check` (fails on any problem) or `build` (writes the report; commit it in a later step)."
+    default: check
+  working-directory:
+    description: "The project's folder: where law25.config.mjs is."
+    default: "."
+  config:
+    description: "The assessment, when it isn't law25.config.mjs, .js or .json in the project's folder."
+    default: ""
+  schema:
+    description: "The files or folders that describe the data, separated by spaces. Empty: found by itself."
+    default: ""
+  stack:
+    description: "The stack the schema is in, when it can't be told from the files (with `schema`)."
+    default: ""
+  args:
+    description: "Other flags, separated by spaces (for example `--no-schema` or `--lang fr`)."
+    default: ""
+  version:
+    description: "The npm version to run. Empty: the version this action was tagged with."
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        INPUT_COMMAND: ${{ inputs.command }}
+        INPUT_CONFIG: ${{ inputs.config }}
+        INPUT_SCHEMA: ${{ inputs.schema }}
+        INPUT_STACK: ${{ inputs.stack }}
+        INPUT_ARGS: ${{ inputs.args }}
+        INPUT_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        # Inputs arrive as environment variables, never pasted into the script; paths are split on spaces but never
+        # expanded as globs.
+        set -f
+        case "$INPUT_COMMAND" in check|build) ;; *) echo "::error::maisongr-law25: command is check or build"; exit 2 ;; esac
+        version="${INPUT_VERSION:-$(node -p 'require(process.env.ACTION_PATH + "/package.json").version')}"
+        if [[ "$version" == *.tgz ]]; then spec="$version"
+        elif [[ "$version" =~ ^[0-9A-Za-z.^~*-]+$ ]]; then spec="maisongr-law25@$version"
+        else echo "::error::maisongr-law25: version must be an npm version"; exit 2; fi
+        args=("$INPUT_COMMAND")
+        if [ -n "$INPUT_CONFIG" ]; then args+=(--config "$INPUT_CONFIG"); fi
+        for s in $INPUT_SCHEMA; do args+=(--schema "$s"); done
+        if [ -n "$INPUT_STACK" ]; then args+=(--stack "$INPUT_STACK"); fi
+        for a in $INPUT_ARGS; do args+=("$a"); done
+        if [ "$INPUT_COMMAND" = "check" ]; then args+=(--github); fi
+        npx --yes --package "$spec" maisongr-law25 "${args[@]}"
