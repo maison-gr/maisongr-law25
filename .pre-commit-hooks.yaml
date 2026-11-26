@@ -1,0 +1,10 @@
+# pre-commit hook (https://pre-commit.com): the assessment checked against the schema before each commit. It reads
+# the whole project, not the files being committed, so it runs on every commit; it takes well under a second.
+- id: maisongr-law25
+  name: Law 25 privacy impact assessment (maisongr-law25 check)
+  description: Fails when law25.config.mjs is incomplete or leaves out a personal field of the schema.
+  entry: maisongr-law25 check
+  language: node
+  pass_filenames: false
+  always_run: true
+  minimum_pre_commit_version: "3.2.0"

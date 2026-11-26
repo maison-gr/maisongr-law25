@@ -166,7 +166,36 @@ Les sections couvrent les points que nomment les articles 3.3, 12 et 17, et les 
 
 Une demande de fusion qui ajoute `users.phone` sans dire pourquoi on le recueille ni combien de temps on le garde échoue, avec le fichier et la ligne du nouveau champ.
 
-Options : `--config <fichier>`, `--schema <chemin>` (répétable) et `--stack <pile>`, `--prisma <chemin>`, `--sql <chemin>`, `--no-schema` (vérifier l’évaluation seule), `--out <dossier>` et `--lang fr|en` pour `build`, `--json` pour un résultat lisible par une machine. Codes de sortie : 0 terminé, 1 problèmes trouvés, 2 erreur d’utilisation.
+Ou, sans script à écrire :
+
+**Action GitHub.** Chaque problème s’affiche dans la demande de fusion : un champ oublié sur sa ligne du schéma, le reste sur la configuration.
+
+```yaml
+- uses: actions/checkout@v5
+- uses: maison-gr/maisongr-law25@v1.0.3
+  # with: { working-directory: apps/api, schema: db/schema.ts, stack: drizzle, command: build }
+```
+
+L’action lance la version npm de son étiquette (`version` pour en choisir une autre) et demande Node.js 20.9 ou plus sur l’exécuteur, ce qu’ont ceux de GitHub. Ailleurs, `npx maisongr-law25 check --github` affiche les mêmes annotations.
+
+**pre-commit.** Dans `.pre-commit-config.yaml`; le crochet lit tout le projet, il passe donc à chaque commit :
+
+```yaml
+repos:
+  - repo: https://github.com/maison-gr/maisongr-law25
+    rev: v1.0.3
+    hooks:
+      - id: maisongr-law25
+```
+
+**Docker,** pour toute CI ou une machine sans Node.js (linux/amd64 et linux/arm64) :
+
+```sh
+docker run --rm -v "$PWD:/work" ghcr.io/maison-gr/maisongr-law25 check
+docker run --rm --user "$(id -u):$(id -g)" -v "$PWD:/work" ghcr.io/maison-gr/maisongr-law25 build
+```
+
+Options : `--config <fichier>`, `--schema <chemin>` (répétable) et `--stack <pile>`, `--prisma <chemin>`, `--sql <chemin>`, `--no-schema` (vérifier l’évaluation seule), `--out <dossier>` et `--lang fr|en` pour `build`, `--json` pour un résultat lisible par une machine, `--github` pour des annotations GitHub Actions. Codes de sortie : 0 terminé, 1 problèmes trouvés, 2 erreur d’utilisation.
 
 ## Dans le code
 

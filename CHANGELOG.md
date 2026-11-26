@@ -6,6 +6,15 @@ Toutes les modifications notables de `maisongr-law25`. Le format suit [Keep a Ch
 
 ## [Non publié]
 
+## [1.0.3] - 2026-11-26
+
+### Ajouté
+
+- Une action GitHub (`uses: maison-gr/maisongr-law25@v1.0.3`) : chaque problème s’affiche dans la demande de fusion, un champ personnel oublié sur sa ligne du schéma.
+- Un crochet pre-commit, `maisongr-law25`.
+- Une image de conteneur, `ghcr.io/maison-gr/maisongr-law25`, pour linux/amd64 et linux/arm64.
+- `--github` : le résultat de `check` en annotations GitHub Actions.
+
 ## [1.0.2] - 2026-11-26
 
 ### Corrigé
